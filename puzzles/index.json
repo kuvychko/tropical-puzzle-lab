@@ -1,0 +1,23 @@
+{
+  "formatVersion": 1,
+  "puzzles": [
+    {
+      "id": "rev2",
+      "revision": 1,
+      "name": "Rev 2",
+      "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "variant": "relief",
+      "pieceCount": 9,
+      "path": "rev2/puzzle.json"
+    },
+    {
+      "id": "rev2-flat",
+      "revision": 1,
+      "name": "Rev 2 (flat)",
+      "description": "The rev2 footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "variant": "tiling",
+      "pieceCount": 9,
+      "path": "rev2-flat/puzzle.json"
+    }
+  ]
+}

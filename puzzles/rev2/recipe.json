@@ -1,0 +1,63 @@
+{
+  "formatVersion": 1,
+  "family": "tropical-max-affine",
+  "id": "rev2",
+  "revision": 1,
+  "pieceCount": 9,
+  "domain": "3.2",
+  "xyMmPerUnit": "22.5",
+  "minThicknessMm": "8",
+  "reliefMm": "35",
+  "trayRimMm": "7",
+  "terms": [
+    { "id": "A", "a": -6, "b": -4, "c": "-10.353781" },
+    { "id": "B", "a": 4, "b": -6, "c": "-11.279469" },
+    { "id": "C", "a": 7, "b": 1, "c": "-11.445728" },
+    { "id": "D", "a": 1, "b": 7, "c": "-9.139592" },
+    { "id": "E", "a": -6, "b": 4, "c": "-13.518475" },
+    { "id": "F", "a": 2, "b": 2, "c": "-2.223625" },
+    { "id": "G", "a": -1, "b": -1, "c": "-0.595755" },
+    { "id": "H", "a": 1, "b": -2, "c": "-1.443053" },
+    { "id": "I", "a": -2, "b": 2, "c": "-2.678293" }
+  ],
+  "variants": [
+    {
+      "id": "rev2",
+      "variant": "relief",
+      "name": "Rev 2",
+      "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "notes": [
+        "Ideal polygons from the tropical polynomial; the 0.15 mm print inset is not applied.",
+        "Heights are measured from the piece underside (the source adds a 3 mm tray floor)."
+      ]
+    },
+    {
+      "id": "rev2-flat",
+      "variant": "tiling",
+      "name": "Rev 2 (flat)",
+      "description": "The rev2 footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "flatThicknessMm": "12",
+      "notes": [
+        "Ideal polygons from the tropical polynomial; the 0.15 mm print inset is not applied.",
+        "Roof relief removed: every piece has the same uniform thickness."
+      ]
+    }
+  ],
+  "validation": {
+    "contactNoise": 1e-6,
+    "overlapDepth": 0.006,
+    "outsideDepth": 0.006,
+    "areaError": 0.012,
+    "roofMismatch": 0.05,
+    "edgeAngleDeg": 3,
+    "edgeMinOverlap": 0.02
+  },
+  "scramble": { "algorithm": "v1", "defaultSeed": 20261019 },
+  "source": {
+    "archive": "tropical-puzzle-rev2.zip (2026-09-28), extracted to puzzles/rev2/source/",
+    "candidates": "source/search-results.json, candidate index 0",
+    "trial": 1201,
+    "searchSeed": 20260928,
+    "coefficientRounding": 6
+  }
+}

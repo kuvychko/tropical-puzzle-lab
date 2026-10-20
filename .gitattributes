@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# Original rev2 archive contents: keep byte-identical.
+puzzles/rev2/source/** -text

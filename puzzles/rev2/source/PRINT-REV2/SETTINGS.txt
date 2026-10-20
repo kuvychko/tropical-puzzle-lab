@@ -1,0 +1,9 @@
+Final Rev 2: selected nine-piece set plus shared tray. Units: mm.
+XY inset per piece edge: 0.150 mm
+Nominal adjacent-piece gap: 0.300 mm
+Nominal piece-to-tray clearance per side: 0.150 mm
+Z clearance: 0 mm; original top planes and flat undersides preserved.
+Printer target: 0.4 mm nozzle, 0.2 mm layers.
+Import at 100% scale. Print parts separately, flat side down.
+Do not apply additional whole-part XY shrink in the slicer.
+Physical fit is untested. First-layer compensation is separate from model clearance.

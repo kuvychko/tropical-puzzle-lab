@@ -1,0 +1,136 @@
+[
+  {
+    "name": "rev2-recommended",
+    "piece_count": 9,
+    "xy_inset_mm": 0.15,
+    "nominal_neighbor_gap_mm": 0.3,
+    "nominal_wall_gap_mm": 0.15,
+    "z_clearance_mm": 0.0,
+    "interior_pieces": [
+      "F",
+      "G",
+      "H",
+      "I"
+    ],
+    "min_width_mm": 31.640374285714287,
+    "min_ideal_edge_mm": 8.648009999999989,
+    "area_ratio": 2.325381955630855,
+    "ideal_active_plane_max_error_mm": 8.186120887208114e-15,
+    "ideal_minimum_xy_mm": [
+      -2.557507499999999,
+      14.766532499999995
+    ],
+    "min_printed_thickness_mm": 8.01448272970227,
+    "max_printed_assembled_height_mm": 45.897591636174326,
+    "volumes_mm3": [
+      86052.51348905989,
+      70171.4112249611,
+      42779.70093429888,
+      79587.13010368998,
+      42211.874860057134,
+      19945.475620139816,
+      18113.24252562501,
+      22773.42414850397,
+      19863.81300682377
+    ],
+    "similar_pairs": [
+      {
+        "i": 5,
+        "j": 8,
+        "rms_mm": 2.6807067657712027,
+        "rotation_deg": 175
+      },
+      {
+        "i": 5,
+        "j": 6,
+        "rms_mm": 2.8359406658285793,
+        "rotation_deg": 230
+      },
+      {
+        "i": 6,
+        "j": 8,
+        "rms_mm": 3.5204595099776093,
+        "rotation_deg": 305
+      },
+      {
+        "i": 4,
+        "j": 7,
+        "rms_mm": 4.388073577360189,
+        "rotation_deg": 335
+      },
+      {
+        "i": 4,
+        "j": 6,
+        "rms_mm": 4.620044408857843,
+        "rotation_deg": 20
+      }
+    ]
+  },
+  {
+    "name": "rev2-alternative",
+    "piece_count": 9,
+    "xy_inset_mm": 0.15,
+    "nominal_neighbor_gap_mm": 0.3,
+    "nominal_wall_gap_mm": 0.15,
+    "z_clearance_mm": 0.0,
+    "interior_pieces": [
+      "F",
+      "G",
+      "H",
+      "I"
+    ],
+    "min_width_mm": 26.7858045,
+    "min_ideal_edge_mm": 8.69248896484174,
+    "area_ratio": 2.225392162291694,
+    "ideal_active_plane_max_error_mm": 1.0942066721584612e-14,
+    "ideal_minimum_xy_mm": [
+      -8.034345,
+      -3.1279500000000007
+    ],
+    "min_printed_thickness_mm": 8.022739318538484,
+    "max_printed_assembled_height_mm": 45.89733606747918,
+    "volumes_mm3": [
+      66971.39410834224,
+      75499.77518071684,
+      81456.17541828637,
+      43098.92940574185,
+      50625.89095756278,
+      20252.584999154038,
+      17503.545601752547,
+      24931.929351472863,
+      24184.58788524326
+    ],
+    "similar_pairs": [
+      {
+        "i": 4,
+        "j": 5,
+        "rms_mm": 2.999092519118311,
+        "rotation_deg": 45
+      },
+      {
+        "i": 6,
+        "j": 8,
+        "rms_mm": 3.3313414069002842,
+        "rotation_deg": 115
+      },
+      {
+        "i": 5,
+        "j": 8,
+        "rms_mm": 3.457030555893397,
+        "rotation_deg": 125
+      },
+      {
+        "i": 5,
+        "j": 7,
+        "rms_mm": 4.856132430167668,
+        "rotation_deg": 290
+      },
+      {
+        "i": 7,
+        "j": 8,
+        "rms_mm": 5.054827090961355,
+        "rotation_deg": 180
+      }
+    ]
+  }
+]
