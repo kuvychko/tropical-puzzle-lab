@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { scramble } from '../src/geometry/scramble';
-import { type KeyValueStore, loadSession, newSession, pushUndo, redo, saveSession, storageKey, undo } from '../src/sessions/session';
+import { type KeyValueStore, loadSession, newSession, pushUndo, redo, report, saveSession, storageKey, undo } from '../src/sessions/session';
 import type { Puzzle } from '../src/types';
 
 const rev2: Puzzle = JSON.parse(readFileSync(new URL('../../puzzles/rev2/puzzle.json', import.meta.url), 'utf-8'));
@@ -33,6 +33,19 @@ describe('sessions', () => {
       expect(redo(loaded.session)).toBe(true);
       expect(loaded.session.poses[0].x).toBeCloseTo(s.poses[0].x);
     }
+  });
+
+  it('loads sessions saved before sticky edges existed, and reports assist use', () => {
+    const store = memoryStore();
+    const { stickyEdges: _s, snaps: _n, ...old } = newSession(rev2, 7, scramble(rev2, 7));
+    store.setItem(storageKey(rev2.id), JSON.stringify(old));
+    const loaded = loadSession(rev2, store);
+    expect(loaded.status).toBe('ok');
+    if (loaded.status !== 'ok') return;
+    expect(loaded.session.stickyEdges).toBe(false);
+    expect(report(rev2, loaded.session, false)).toContain('assist=none');
+    loaded.session.snaps = 3;
+    expect(report(rev2, loaded.session, false)).toContain('assist=sticky-edges(3)');
   });
 
   it('rejects a session saved for different geometry', () => {

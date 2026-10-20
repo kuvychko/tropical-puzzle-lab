@@ -22,8 +22,9 @@ The first puzzle is **rev2**: nine pieces, four of them fully interior, which wa
 | Select | Click; Tab cycles; click the same spot again to reach a piece underneath |
 | Camera | Right-drag orbits, Shift+right-drag or middle-drag pans, the wheel zooms, T gives a top view |
 | History | Ctrl+Z undo, Ctrl+Shift+Z redo, Restart, New scramble |
+| Sticky edges | Optional, off by default (checkbox or S): a released piece aligns flush with a tray wall or piece edge it is already next to |
 
-Pieces cannot be flipped, nothing snaps into place, and pieces may pass through each other. Overlapping pieces turn red.
+Pieces cannot be flipped and nothing pulls them toward the solution. The optional sticky-edges assist only aligns a piece with edges it is already touching, and its use is noted in the report. Pieces may pass through each other. Overlapping pieces turn red.
 
 Progress is saved in your browser. **Copy report line** gives a line like `puzzle=rev2 rev=1 seed=… time=…` to quote when you share observations.
 
@@ -38,6 +39,7 @@ Working:
 - Undo and redo.
 - Saving progress and resuming after a reload.
 - An optional solution outline whose use is recorded.
+- An optional sticky-edges assist, also recorded.
 
 Planned: more puzzles and parametric families, an explode/illustration mode, session export, mobile input, automated solvers and difficulty studies. Difficulty is a research question; nothing here classifies it yet.
 

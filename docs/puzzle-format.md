@@ -57,7 +57,8 @@ The **v1 scramble** is a seeded mulberry32 PRNG (`web/src/geometry/scramble.ts`)
   "seed": 20261019, "scrambleVersion": "v1",
   "poses": [{ "id": "A", "x": 0, "y": 0, "theta": 0 }],
   "undo": [[…poses…]], "redo": [],
-  "revealed": false, "elapsedMs": 0, "solvedAt": null
+  "revealed": false, "stickyEdges": false, "snaps": 0,
+  "elapsedMs": 0, "solvedAt": null
 }
 ```
 
@@ -67,5 +68,7 @@ A saved session is discarded with a visible notice in any of these cases:
 - The poses don't match the puzzle's pieces.
 
 Sessions are not migrated. They stay in the visitor's browser and are never sent anywhere.
+
+`stickyEdges` is the assist toggle, and `snaps` counts how many times it moved a piece in this attempt. Sessions saved before these fields existed load with `false` and `0`.
 
 `elapsedMs` counts active time: from the first move, while the page is visible, until the puzzle is solved.

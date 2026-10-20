@@ -16,6 +16,9 @@ export interface Session {
   undo: Pose[][];
   redo: Pose[][];
   revealed: boolean;
+  /** Optional sticky-edges assist (off by default) and how many times it moved a piece. */
+  stickyEdges: boolean;
+  snaps: number;
   elapsedMs: number;
   solvedAt: string | null;
 }
@@ -35,7 +38,7 @@ export function browserStore(): KeyValueStore | null {
   }
 }
 
-export function newSession(puzzle: Puzzle, seed: number, poses: Pose[], revealed = false): Session {
+export function newSession(puzzle: Puzzle, seed: number, poses: Pose[], revealed = false, stickyEdges = false): Session {
   return {
     version: SESSION_VERSION,
     puzzleId: puzzle.id,
@@ -47,6 +50,8 @@ export function newSession(puzzle: Puzzle, seed: number, poses: Pose[], revealed
     undo: [],
     redo: [],
     revealed,
+    stickyEdges,
+    snaps: 0,
     elapsedMs: 0,
     solvedAt: null,
   };
@@ -89,6 +94,9 @@ export function loadSession(puzzle: Puzzle, store: KeyValueStore | null): LoadRe
     Array.isArray(s.undo) &&
     Array.isArray(s.redo);
   if (!compatible) return { status: 'incompatible' };
+  // Fields added after the first release default to "assist not used".
+  s.stickyEdges = s.stickyEdges === true;
+  s.snaps = Number.isInteger(s.snaps) && s.snaps > 0 ? s.snaps : 0;
   s.undo = s.undo.filter((p) => validPoses(p, puzzle));
   s.redo = s.redo.filter((p) => validPoses(p, puzzle));
   return { status: 'ok', session: s };
@@ -153,6 +161,7 @@ export function report(puzzle: Puzzle, session: Session, solved: boolean): strin
     `solved=${solved ? 'yes' : 'no'}`,
     `time=${formatTime(session.elapsedMs)}`,
     `revealed=${session.revealed ? 'yes' : 'no'}`,
+    `assist=${session.snaps ? `sticky-edges(${session.snaps})` : 'none'}`,
     `geometry=${puzzle.geometryHash.slice(0, 12)}`,
   ].join(' ');
 }

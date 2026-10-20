@@ -8,7 +8,8 @@ These are the play rules agreed in [project.md](project.md), as the player imple
 | Flipping | Not allowed. Each piece keeps its flat underside down. |
 | Appearance | All pieces look the same. A temporary outline marks the selected piece. |
 | Target | The square tray outline is always visible. |
-| Snapping | None, including for keyboard nudges and turns. |
+| Snapping | Never toward the solution: no attraction to a piece's correct position or orientation, and no angle quantisation, including for keyboard nudges and turns. |
+| Sticky edges | Optional assist, off by default (see below). |
 | Collision | Pieces may pass through each other while being moved. |
 | Overlap feedback | A pair of pieces turns red while it overlaps by more than the depth tolerance. |
 | Contact | Boundary contact alone is not overlap. |
@@ -30,6 +31,22 @@ A puzzle always starts from a seeded **scramble**. Every piece gets a random rot
 **Show solution** draws the reference outlines in the tray. Using it is recorded in the session and in the report line.
 
 The proposal also describes an *explode* view for illustration. It is not implemented yet.
+
+## Sticky edges (optional assist)
+
+This is different from the snapping the agreed rules exclude. That rule is about pulling pieces toward their *correct* placement or orientation. Sticky edges only uses edges that are physically next to the piece, like a real tray wall guiding a piece into place.
+
+When it is on (checkbox in the panel, or **S**), releasing a dragged or turned piece does the following:
+
+1. It finds the piece's edge that best matches a nearby fixed edge: a tray wall (from the inside) or another piece. Matching edges face each other, are within 6° of parallel and within 2% of the span (2.9 mm for rev2) of each other, and run alongside each other for at least 2% of the span.
+2. It turns the piece to be exactly parallel and moves it flush, which closes the gap or removes the small overlap.
+3. It then slides the piece along that edge until a second, already-parallel edge is flush, if one is close. This is how a piece settles into a corner.
+
+It does not use the reference solution. It can make a piece flush against a wrong neighbour, as a physical tray would.
+
+Keyboard nudges are never snapped, so fine adjustment always stays possible.
+
+Each snap that moves a piece is counted in the session. The report line shows `assist=sticky-edges(N)`, or `assist=none` if it never moved a piece. The toggle is off by default so that unassisted attempts stay comparable.
 
 ## Completion tolerances
 

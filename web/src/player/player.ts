@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { evaluate, type Evaluation } from '../geometry/evaluate';
 import { bounds, transform } from '../geometry/polygon';
 import { randomSeed, scramble } from '../geometry/scramble';
+import { snapPose } from '../geometry/snap';
 import {
   browserStore, formatTime, loadSession, newSession, pushUndo, redo, report, saveSession, type Session, undo,
 } from '../sessions/session';
@@ -137,6 +138,9 @@ class Player {
             <button data-ui="resetView" type="button" title="Reset camera">Reset camera</button>
             <button data-ui="reveal" type="button" title="Show the reference outlines (recorded in the report)">Show solution</button>
           </div>
+          <label class="toggle" title="When you release a piece, align it flush with a nearby tray wall or piece edge (S). Recorded in the report.">
+            <input data-ui="sticky" type="checkbox" /> Sticky edges
+          </label>
           <dl class="facts">
             <dt>Puzzle</dt><dd>${escapeHtml(p.id)} · rev ${p.revision}</dd>
             <dt>Seed</dt><dd data-ui="seed"></dd>
@@ -154,13 +158,14 @@ class Player {
               <li>Pieces can be moved and turned but never flipped. Nothing snaps into place.</li>
               <li>Pieces may pass through each other while you work. Overlapping pieces turn red.</li>
               <li>Any assembly that fills the tray within tolerance counts, not only the reference one.</li>
+              <li>Optional <b>sticky edges</b> (off by default): a released piece aligns flush with a tray wall or piece edge it is already next to. It never pulls pieces toward the solution, and its use is noted in the report.</li>
             </ul>
             <h3>Controls</h3>
             <ul class="keys">
               <li><b>Left-drag</b> a piece to move it; drag the ring of the selected piece to turn it.</li>
               <li><b>Arrows</b> nudge 1 mm (Shift: 0.1 mm). <b>Q / E</b> turn 1° (Shift: 0.1°).</li>
               <li><b>Tab</b> selects the next piece. Click the same spot again to reach a piece underneath.</li>
-              <li><b>Right-drag</b> orbits, <b>Shift+right-drag</b> or middle-drag pans, the <b>wheel</b> zooms, <b>T</b> top view.</li>
+              <li><b>Right-drag</b> orbits, <b>Shift+right-drag</b> or middle-drag pans, the <b>wheel</b> zooms, <b>T</b> top view, <b>S</b> sticky edges on/off.</li>
               <li><b>Ctrl+Z</b> undo, <b>Ctrl+Shift+Z</b> redo. Progress is saved in this browser.</li>
             </ul>
             <button data-ui="closeRules" type="button">Start</button>
@@ -201,7 +206,7 @@ class Player {
   }
 
   private start(seed: number): void {
-    this.session = newSession(this.puzzle, seed, scramble(this.puzzle, seed), this.session.revealed);
+    this.session = newSession(this.puzzle, seed, scramble(this.puzzle, seed), this.session.revealed, this.session.stickyEdges);
     this.select(null);
     this.afterPosesChanged();
     this.wasSolved = this.evaluation.solved;
@@ -280,6 +285,11 @@ class Player {
     on('copyReport', () => this.copyReport());
     on('rulesButton', () => this.toggleRules(true));
     on('closeRules', () => this.toggleRules(false));
+    const sticky = this.ui.sticky as HTMLInputElement;
+    sticky.addEventListener('change', () => {
+      this.setSticky(sticky.checked);
+      sticky.blur(); // keep keyboard shortcuts working
+    });
   }
 
   private ndc(e: PointerEvent): THREE.Vector2 {
@@ -359,10 +369,28 @@ class Player {
 
   private onPointerUp = (e: PointerEvent): void => {
     if (!this.drag) return;
-    if (this.drag.changed) this.commit();
+    if (this.drag.changed) {
+      if (this.session.stickyEdges) this.applySticky(this.drag.index);
+      this.commit();
+    }
     this.drag = null;
     if (this.renderer.domElement.hasPointerCapture(e.pointerId)) this.renderer.domElement.releasePointerCapture(e.pointerId);
   };
+
+  /** Sticky edges: align a released piece with an edge it is already next to (part of the same undo step). */
+  private applySticky(index: number): void {
+    const snapped = snapPose(this.puzzle, this.session.poses, index);
+    const pose = this.session.poses[index];
+    if (!snapped || (snapped.x === pose.x && snapped.y === pose.y && snapped.theta === pose.theta)) return;
+    this.session.poses[index] = snapped;
+    this.session.snaps++;
+  }
+
+  private setSticky(on: boolean): void {
+    this.session.stickyEdges = on;
+    this.save();
+    this.updateHud();
+  }
 
   private updateCursor(e: PointerEvent): void {
     this.raycaster.setFromCamera(this.ndc(e), this.camera);
@@ -392,6 +420,7 @@ class Player {
       return;
     }
     if (key === 't') return this.topView();
+    if (key === 's') return this.setSticky(!this.session.stickyEdges);
     if (key === 'tab') {
       e.preventDefault();
       const n = this.pieces.length;
@@ -472,7 +501,8 @@ class Player {
     let status: string;
     let cls = '';
     if (e.solved) {
-      status = `Solved${s.revealed ? ' (solution was shown)' : ''} in ${formatTime(s.elapsedMs)}`;
+      const notes = [s.revealed && 'solution was shown', s.snaps && 'sticky edges'].filter(Boolean);
+      status = `Solved in ${formatTime(s.elapsedMs)}${notes.length ? ` (${notes.join(', ')})` : ''}`;
       cls = 'solved';
     } else if (red) {
       status = `${red} pieces overlapping`;
@@ -491,6 +521,7 @@ class Player {
     (this.ui.undo as HTMLButtonElement).disabled = !s.undo.length;
     (this.ui.redo as HTMLButtonElement).disabled = !s.redo.length;
     this.ui.reveal.textContent = this.ghost.visible ? 'Hide solution' : 'Show solution';
+    (this.ui.sticky as HTMLInputElement).checked = s.stickyEdges;
   }
 
   private toggleReveal(): void {
