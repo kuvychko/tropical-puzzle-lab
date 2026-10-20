@@ -1,0 +1,26 @@
+{
+  "name": "tropical-puzzle-lab-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "copy-puzzles": "node scripts/copy-puzzles.mjs",
+    "predev": "npm run copy-puzzles",
+    "dev": "vite",
+    "prebuild": "npm run copy-puzzles",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.9.0",
+    "@types/three": "0.169.0",
+    "typescript": "5.6.3",
+    "vite": "5.4.10",
+    "vitest": "2.1.4"
+  }
+}
