@@ -17,6 +17,14 @@ const TURN_RAD = Math.PI / 180;
 const FINE_TURN_RAD = Math.PI / 1800;
 const RULES_SEEN_KEY = 'tpl:rules-seen';
 
+// Camera presets as [polar from vertical, azimuth from the front], degrees. Keys follow PrusaSlicer
+// (2, the bottom view, is omitted: the camera stays above the table).
+const VIEWS = { iso: [45, -30], top: [0, 0], front: [80, 0], rear: [80, 180], left: [80, -90], right: [80, 90] } as const;
+type View = keyof typeof VIEWS;
+const VIEW_BUTTONS: [View, string, string][] = [
+  ['iso', 'Iso', '0'], ['top', 'Top', '1'], ['front', 'Front', '3'], ['rear', 'Rear', '4'], ['left', 'Left', '5'], ['right', 'Right', '6'],
+];
+
 type Drag =
   | { kind: 'move'; index: number; plane: THREE.Plane; offset: THREE.Vector2; changed: boolean }
   | { kind: 'rotate'; index: number; plane: THREE.Plane; start: number; theta0: number; changed: boolean };
@@ -61,13 +69,14 @@ class Player {
   private selected: number | null = null;
   private drag: Drag | null = null;
   private lastClick: { x: number; y: number; index: number } | null = null;
+  private emptyPress: { x: number; y: number } | null = null;
   private burstTimer: number | undefined;
   private dirty = true;
   private wasSolved = false;
   private lastTick = performance.now();
   private ui: Record<string, HTMLElement> = {};
 
-  constructor(root: HTMLElement, private puzzle: Puzzle, params: URLSearchParams) {
+  constructor(private root: HTMLElement, private puzzle: Puzzle, params: URLSearchParams) {
     root.innerHTML = this.template();
     root.querySelectorAll<HTMLElement>('[data-ui]').forEach((el) => (this.ui[el.dataset.ui!] = el));
 
@@ -96,15 +105,17 @@ class Player {
 
     this.camera.up.set(0, 0, 1);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    // Left button belongs to the pieces; the camera uses right-drag (orbit), middle or Shift+right (pan) and the wheel.
-    this.controls.mouseButtons = { LEFT: -1 as unknown as THREE.MOUSE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.ROTATE };
-    this.controls.maxPolarAngle = THREE.MathUtils.degToRad(78);
+    // PrusaSlicer-style: left-drag on empty space orbits (left-drag on a piece moves it, see
+    // onPointerDown), right- or middle-drag pans, the wheel zooms toward the cursor.
+    this.controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
+    this.controls.zoomToCursor = true;
+    this.controls.maxPolarAngle = THREE.MathUtils.degToRad(85);
     this.controls.addEventListener('change', () => (this.dirty = true));
 
     this.initSession(params);
     this.bindEvents();
     this.resize();
-    this.resetCamera(false);
+    this.setView('iso');
     if (!storageFlag(RULES_SEEN_KEY)) this.toggleRules(true);
     (window as unknown as { tpl: unknown }).tpl = this.debugApi();
     requestAnimationFrame(this.frame);
@@ -134,8 +145,10 @@ class Player {
             <button data-ui="newScramble" type="button" title="New random scramble">New scramble</button>
           </div>
           <div class="row">
-            <button data-ui="topView" type="button" title="Top view (T)">Top view</button>
-            <button data-ui="resetView" type="button" title="Reset camera">Reset camera</button>
+            ${VIEW_BUTTONS.map(([view, label, key]) => `<button class="small" data-view="${view}" type="button" title="${label} view (${key})">${label}</button>`).join('')}
+            <button class="small" data-ui="fit" type="button" title="Zoom to fit (Z)">Fit</button>
+          </div>
+          <div class="row">
             <button data-ui="reveal" type="button" title="Show the reference outlines (recorded in the report)">Show solution</button>
           </div>
           <label class="toggle" title="When you release a piece, align it flush with a nearby tray wall or piece edge (S). Recorded in the report.">
@@ -165,7 +178,8 @@ class Player {
               <li><b>Left-drag</b> a piece to move it; drag the ring of the selected piece to turn it.</li>
               <li><b>Arrows</b> nudge 1 mm (Shift: 0.1 mm). <b>Q / E</b> turn 1° (Shift: 0.1°).</li>
               <li><b>Tab</b> selects the next piece. Click the same spot again to reach a piece underneath.</li>
-              <li><b>Right-drag</b> orbits, <b>Shift+right-drag</b> or middle-drag pans, the <b>wheel</b> zooms, <b>T</b> top view, <b>S</b> sticky edges on/off.</li>
+              <li>Camera as in PrusaSlicer: <b>left-drag</b> empty space to orbit, <b>right-</b> or <b>middle-drag</b> to pan, the <b>wheel</b> zooms.</li>
+              <li>Views: <b>0</b> iso, <b>1</b> top, <b>3</b> front, <b>4</b> rear, <b>5</b> left, <b>6</b> right, <b>Z</b> zoom to fit. <b>S</b> turns sticky edges on or off.</li>
               <li><b>Ctrl+Z</b> undo, <b>Ctrl+Shift+Z</b> redo. Progress is saved in this browser.</li>
             </ul>
             <button data-ui="closeRules" type="button">Start</button>
@@ -211,7 +225,7 @@ class Player {
     this.afterPosesChanged();
     this.wasSolved = this.evaluation.solved;
     this.save();
-    this.resetCamera(false);
+    this.fitView();
   }
 
   private beginChange(): void {
@@ -261,7 +275,8 @@ class Player {
 
   private bindEvents(): void {
     const canvas = this.renderer.domElement;
-    canvas.addEventListener('pointerdown', this.onPointerDown);
+    // Capture phase: runs before OrbitControls' own listener, so a press on a piece can disable orbiting.
+    canvas.addEventListener('pointerdown', this.onPointerDown, { capture: true });
     canvas.addEventListener('pointermove', this.onPointerMove);
     canvas.addEventListener('pointerup', this.onPointerUp);
     canvas.addEventListener('pointercancel', this.onPointerUp);
@@ -279,8 +294,9 @@ class Player {
     on('redo', () => this.historyStep(redo));
     on('restart', () => this.start(this.session.seed));
     on('newScramble', () => this.start(randomSeed()));
-    on('topView', () => this.topView());
-    on('resetView', () => this.resetCamera(false));
+    on('fit', () => this.fitView());
+    this.root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) =>
+      b.addEventListener('click', () => this.setView(b.dataset.view as View)));
     on('reveal', () => this.toggleReveal());
     on('copyReport', () => this.copyReport());
     on('rulesButton', () => this.toggleRules(true));
@@ -303,6 +319,8 @@ class Player {
   }
 
   private onPointerDown = (e: PointerEvent): void => {
+    this.controls.enabled = true;
+    this.emptyPress = null;
     if (e.button !== 0) return;
     this.endBurst();
     this.raycaster.setFromCamera(this.ndc(e), this.camera);
@@ -313,6 +331,7 @@ class Player {
       const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -this.handle.group.position.z);
       const p = this.pointOnPlane(e, plane);
       if (!p) return;
+      this.controls.enabled = false;
       this.drag = { kind: 'rotate', index, plane, start: Math.atan2(p.y - pose.y, p.x - pose.x), theta0: pose.theta, changed: false };
       this.renderer.domElement.setPointerCapture(e.pointerId);
       return;
@@ -325,10 +344,12 @@ class Player {
       if (!order.some((o) => o.index === index)) order.push({ index, point: h.point });
     }
     if (!order.length) {
-      this.select(null);
+      // Empty space: OrbitControls orbits. A click without dragging deselects (on release).
+      this.emptyPress = { x: e.clientX, y: e.clientY };
       this.lastClick = null;
       return;
     }
+    this.controls.enabled = false;
     // Clicking the same spot again reaches the next piece underneath.
     let choice = order[0];
     const last = this.lastClick;
@@ -368,6 +389,10 @@ class Player {
   };
 
   private onPointerUp = (e: PointerEvent): void => {
+    this.controls.enabled = true;
+    const press = this.emptyPress;
+    this.emptyPress = null;
+    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 4) this.select(null);
     if (!this.drag) return;
     if (this.drag.changed) {
       if (this.session.stickyEdges) this.applySticky(this.drag.index);
@@ -419,7 +444,9 @@ class Player {
       else this.select(null);
       return;
     }
-    if (key === 't') return this.topView();
+    const view = VIEW_BUTTONS.find(([, , k]) => k === key);
+    if (view) return this.setView(view[0]);
+    if (key === 'z') return this.fitView();
     if (key === 's') return this.setSticky(!this.session.stickyEdges);
     if (key === 'tab') {
       e.preventDefault();
@@ -468,19 +495,27 @@ class Player {
     return { cx: (box.minX + box.maxX) / 2, cy: (box.minY + box.maxY) / 2, r: Math.hypot(box.maxX - box.minX, box.maxY - box.minY) / 2 };
   }
 
-  private resetCamera(top: boolean): void {
+  /** Frame the tray and all pieces from the given direction (polar from vertical, azimuth from the front). */
+  private placeCamera(polar: number, azimuth: number): void {
     const { cx, cy, r } = this.sceneBounds();
     const fov = THREE.MathUtils.degToRad(this.camera.fov);
     const fit = r / Math.sin(fov / 2) / Math.min(1, this.camera.aspect) * 0.8;
-    const polar = top ? 1e-4 : THREE.MathUtils.degToRad(38);
-    this.camera.position.set(cx, cy - fit * Math.sin(polar), fit * Math.cos(polar));
+    const p = Math.max(polar, 1e-4);
+    this.camera.position.set(cx + fit * Math.sin(p) * Math.sin(azimuth), cy - fit * Math.sin(p) * Math.cos(azimuth), fit * Math.cos(p));
     this.controls.target.set(cx, cy, 0);
     this.controls.update();
     this.dirty = true;
   }
 
-  private topView(): void {
-    this.resetCamera(true);
+  private setView(view: View): void {
+    const [polar, azimuth] = VIEWS[view];
+    this.placeCamera(THREE.MathUtils.degToRad(polar), THREE.MathUtils.degToRad(azimuth));
+  }
+
+  /** Zoom to fit, keeping the current viewing direction. */
+  private fitView(): void {
+    const d = this.camera.position.clone().sub(this.controls.target).normalize();
+    this.placeCamera(Math.acos(THREE.MathUtils.clamp(d.z, -1, 1)), Math.atan2(d.x, -d.y));
   }
 
   private resize(): void {

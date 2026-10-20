@@ -101,3 +101,4 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .toggle input { margin: 0; }
+.panel button.small { padding: 3px 7px; font-size: 13px; }
