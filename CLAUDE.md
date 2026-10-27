@@ -43,7 +43,7 @@ There are three concerns, connected only by JSON:
    - `<id>/recipe.json` is hand-edited: tropical terms as exact decimal strings, scale, variants, tolerances and scramble seed.
    - `<id>/source/` holds the original material, byte-identical (see `.gitattributes`). Never edit it.
    - `<variant-id>/puzzle.json` and `index.json` are generated and committed. Never edit them by hand: change the recipe or the generator and rerun `tpl-export`.
-2. **`generator/` (`tropical_puzzle_lab`).** It computes the cells with exact `Fraction` arithmetic (`tropical.regions`, ported from the rev2 `search.py`). It validates the reference assembly exactly in `Construction.check`, then writes one `puzzle.json` per variant. Pieces are centred on their centroids, and relief roofs are stored as local planes.
+2. **`generator/` (`tropical_puzzle_lab`).** It computes the cells with exact `Fraction` arithmetic (`tropical.regions`, ported from the rev2 `search.py`). It validates the reference assembly exactly in `Construction.check`, then writes one `puzzle.json` per variant. Pieces are centred on their centroids, and relief roofs are stored as local planes. `difficulty.py` computes the 1–5 difficulty rating into `index.json`; its configuration block is the only place the rating's parameters are defined.
 3. **`web/`.**
    - `src/geometry/` is pure TypeScript with no Three.js:
      - `polygon.ts`: convex clipping and SAT penetration;

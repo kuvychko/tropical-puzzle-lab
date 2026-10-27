@@ -1,0 +1,71 @@
+{
+  "formatVersion": 1,
+  "family": "tropical-affine",
+  "convention": "min",
+  "id": "new1",
+  "revision": 1,
+  "pieceCount": 16,
+  "domain": "4",
+  "center": ["-5", "-5"],
+  "xyMmPerUnit": "18",
+  "minThicknessMm": "8",
+  "reliefMm": "35",
+  "trayRimMm": "7",
+  "terms": [
+    { "id": "A", "a": 1, "b": 1, "c": "68/25" },
+    { "id": "B", "a": 2, "b": 1, "c": "32/5" },
+    { "id": "C", "a": 3, "b": 1, "c": "527/50" },
+    { "id": "D", "a": 4, "b": 1, "c": "921/50" },
+    { "id": "E", "a": 1, "b": 2, "c": "301/50" },
+    { "id": "F", "a": 2, "b": 2, "c": "91/10" },
+    { "id": "G", "a": 3, "b": 2, "c": "351/25" },
+    { "id": "H", "a": 4, "b": 2, "c": "107/5" },
+    { "id": "I", "a": 1, "b": 3, "c": "103/10" },
+    { "id": "J", "a": 2, "b": 3, "c": "14" },
+    { "id": "K", "a": 3, "b": 3, "c": "498/25" },
+    { "id": "L", "a": 4, "b": 3, "c": "131/5" },
+    { "id": "M", "a": 1, "b": 4, "c": "443/25" },
+    { "id": "N", "a": 2, "b": 4, "c": "22" },
+    { "id": "O", "a": 3, "b": 4, "c": "1337/50" },
+    { "id": "P", "a": 4, "b": 4, "c": "839/25" }
+  ],
+  "variants": [
+    {
+      "id": "new1",
+      "variant": "relief",
+      "name": "16 easy",
+      "description": "Sixteen pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "notes": [
+        "Min-convention tropical polynomial over x, y in [-9, -1]; each piece is the region where one term attains the minimum.",
+        "Exploratory puzzle under evaluation."
+      ]
+    },
+    {
+      "id": "new1-flat",
+      "variant": "tiling",
+      "name": "16 easy (flat)",
+      "description": "The 16 easy footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "flatThicknessMm": "12",
+      "notes": [
+        "Min-convention tropical polynomial over x, y in [-9, -1]; each piece is the region where one term attains the minimum.",
+        "Roof relief removed: every piece has the same uniform thickness."
+      ]
+    }
+  ],
+  "validation": {
+    "contactNoise": 1e-06,
+    "overlapDepth": 0.006,
+    "outsideDepth": 0.006,
+    "areaError": 0.012,
+    "roofMismatch": 0.05,
+    "edgeAngleDeg": 3,
+    "edgeMinOverlap": 0.02
+  },
+  "scramble": {
+    "algorithm": "v1",
+    "defaultSeed": 20261027
+  },
+  "source": {
+    "polynomial": "Min[68/25+x+y,32/5+2 x+y,527/50+3 x+y,921/50+4 x+y,301/50+x+2 y,91/10+2 x+2 y,351/25+3 x+2 y,107/5+4 x+2 y,103/10+x+3 y,14+2 x+3 y,498/25+3 x+3 y,131/5+4 x+3 y,443/25+x+4 y,22+2 x+4 y,1337/50+3 x+4 y,839/25+4 x+4 y]"
+  }
+}

@@ -68,4 +68,32 @@ export interface PuzzleIndexEntry {
   variant: 'relief' | 'tiling';
   pieceCount: number;
   path: string;
+  difficulty: DifficultyRating;
+}
+
+/** Precomputed by the generator (`tropical_puzzle_lab/difficulty.py`). */
+export interface DifficultyRating {
+  /** Leinster–Cobbold diversity D of the pieces, in [1, n]. */
+  diversity: number;
+  /** (D − 1) / (n − 1), in [0, 1]. */
+  x: number;
+  /** 1 (easiest) to 5 (hardest). */
+  rating: number;
+}
+
+/** The rating parameters, copied from the generator's single configuration block. */
+export interface DifficultyConfig {
+  method: string;
+  u: number;
+  /** Order of the Leinster–Cobbold diversity. */
+  q: number | 'infinity';
+  direction: 'lower-diversity-is-harder' | 'higher-diversity-is-harder';
+  /** Four increasing cut points on x. */
+  thresholds: number[];
+}
+
+export interface PuzzleIndex {
+  formatVersion: 1;
+  difficulty: DifficultyConfig;
+  puzzles: PuzzleIndexEntry[];
 }

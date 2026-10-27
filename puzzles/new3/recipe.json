@@ -1,0 +1,64 @@
+{
+  "formatVersion": 1,
+  "family": "tropical-affine",
+  "convention": "min",
+  "id": "new3",
+  "revision": 1,
+  "pieceCount": 9,
+  "domain": "3",
+  "center": ["-4", "-4"],
+  "xyMmPerUnit": "24",
+  "minThicknessMm": "8",
+  "reliefMm": "35",
+  "trayRimMm": "7",
+  "terms": [
+    { "id": "A", "a": 1, "b": 1, "c": "179/50" },
+    { "id": "B", "a": 2, "b": 1, "c": "33/5" },
+    { "id": "C", "a": 3, "b": 1, "c": "51/5" },
+    { "id": "D", "a": 1, "b": 2, "c": "152/25" },
+    { "id": "E", "a": 2, "b": 2, "c": "207/25" },
+    { "id": "F", "a": 3, "b": 2, "c": "333/25" },
+    { "id": "G", "a": 1, "b": 3, "c": "258/25" },
+    { "id": "H", "a": 2, "b": 3, "c": "717/50" },
+    { "id": "I", "a": 3, "b": 3, "c": "471/25" }
+  ],
+  "variants": [
+    {
+      "id": "new3",
+      "variant": "relief",
+      "name": "9 easy",
+      "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "notes": [
+        "Min-convention tropical polynomial over x, y in [-7, -1]; each piece is the region where one term attains the minimum.",
+        "Exploratory puzzle under evaluation."
+      ]
+    },
+    {
+      "id": "new3-flat",
+      "variant": "tiling",
+      "name": "9 easy (flat)",
+      "description": "The 9 easy footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "flatThicknessMm": "12",
+      "notes": [
+        "Min-convention tropical polynomial over x, y in [-7, -1]; each piece is the region where one term attains the minimum.",
+        "Roof relief removed: every piece has the same uniform thickness."
+      ]
+    }
+  ],
+  "validation": {
+    "contactNoise": 1e-06,
+    "overlapDepth": 0.006,
+    "outsideDepth": 0.006,
+    "areaError": 0.012,
+    "roofMismatch": 0.05,
+    "edgeAngleDeg": 3,
+    "edgeMinOverlap": 0.02
+  },
+  "scramble": {
+    "algorithm": "v1",
+    "defaultSeed": 20261027
+  },
+  "source": {
+    "polynomial": "Min[179/50+x+y,33/5+2 x+y,51/5+3 x+y,152/25+x+2 y,207/25+2 x+2 y,333/25+3 x+2 y,258/25+x+3 y,717/50+2 x+3 y,471/25+3 x+3 y]"
+  }
+}
