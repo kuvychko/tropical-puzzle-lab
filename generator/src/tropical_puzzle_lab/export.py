@@ -175,6 +175,8 @@ def build_index(puzzles_dir: Path) -> dict:
         d = puzzle_difficulty(p)
         entries.append({
             "id": p["id"],
+            # The recipe the variant was built from; the gallery shows one card per construction.
+            "construction": Path(p["provenance"]["recipe"]).parent.name,
             "revision": p["revision"],
             "name": p["name"],
             "description": p["description"],
@@ -185,7 +187,7 @@ def build_index(puzzles_dir: Path) -> dict:
             "difficulty": {"diversity": round(d.diversity, 6), "x": round(d.x, 6), "rating": d.rating},
         })
     order = {"relief": 0, "tiling": 1}
-    entries.sort(key=lambda e: (e["id"].split("-")[0], order.get(e["variant"], 9), e["id"]))
+    entries.sort(key=lambda e: (e["construction"], order.get(e["variant"], 9), e["id"]))
     return {"formatVersion": FORMAT_VERSION, "difficulty": difficulty_config(), "puzzles": entries}
 
 

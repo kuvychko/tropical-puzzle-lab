@@ -59,6 +59,7 @@ There are three concerns, connected only by JSON:
 - **Two variants per construction.**
   - Relief: solved only if the footprints tile the target *and* neighbouring roofs agree along shared edges.
   - Tiling: footprints only, uniform thickness.
+  - The gallery groups variants by `construction` (in `index.json`) into one card, and the player's Relief | Flat switch just links to the sibling variant. Each variant keeps its own session; never carry poses across.
 - **One numerical policy.** A piece is red exactly when it fails the overlap-depth test that also blocks completion (`evaluate.ts`). Don't add a separate threshold for colouring.
 - **Completion is judged from geometry, never by matching reference poses.** Alternative assemblies must pass.
 - **Nothing ever pulls a piece toward its solution pose or a preferred angle,** including keyboard nudges. Pieces stay on z=0 and rotate only about z. The camera never changes poses.

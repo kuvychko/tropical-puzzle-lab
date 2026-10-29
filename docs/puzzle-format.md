@@ -55,7 +55,7 @@ The **v1 scramble** is a seeded mulberry32 PRNG (`web/src/geometry/scramble.ts`)
 | Field | Contents |
 | --- | --- |
 | `difficulty` | The rating parameters `{method, u, q, direction, thresholds}`, copied from the configuration block at the top of `generator/src/tropical_puzzle_lab/difficulty.py`. The explanation page (`?page=difficulty`) reads them from here |
-| `puzzles[]` | `{id, revision, name, description, variant, pieceCount, path, difficulty}`, where `difficulty` is `{diversity, x, rating}`: the Leinster–Cobbold diversity D, x = (D − 1)/(n − 1), and the 1–5 rating. D and x are rounded to 6 decimals |
+| `puzzles[]` | `{id, construction, revision, name, description, variant, pieceCount, path, difficulty}`, where `construction` is the recipe id the variant was built from (the gallery shows one card per construction), and `difficulty` is `{diversity, x, rating}`: the Leinster–Cobbold diversity D, x = (D − 1)/(n − 1), and the 1–5 rating. D and x are rounded to 6 decimals |
 
 The rating is computed by `tpl-export` from each piece's solid (its footprint extruded to its roof or thickness). To change it, edit the configuration block and rerun `tpl-export`.
 

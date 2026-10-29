@@ -114,6 +114,17 @@ def test_ratings_are_in_range():
         assert 1 <= d.diversity <= d.n and 1 <= d.rating <= 5
 
 
+def test_variants_of_a_construction_share_footprints():
+    # The gallery shows one card per construction and the player switches between its variants.
+    groups = {}
+    for entry in build_index(PUZZLES)["puzzles"]:
+        groups.setdefault(entry["construction"], []).append(load(entry["id"]))
+    for construction, puzzles in groups.items():
+        assert len({p["variant"] for p in puzzles}) == len(puzzles), construction
+        assert len({json.dumps([q["polygon"] for q in p["pieces"]]) for p in puzzles}) == 1, construction
+        assert len({p["scramble"]["defaultSeed"] for p in puzzles}) == 1, construction
+
+
 def test_committed_index_is_current():
     committed = (PUZZLES / "index.json").read_text(encoding="utf-8")
     assert committed == dump(build_index(PUZZLES)), "run tpl-export to regenerate index.json"

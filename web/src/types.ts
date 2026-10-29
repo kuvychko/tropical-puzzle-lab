@@ -35,13 +35,15 @@ export interface Validation {
   edgeMinOverlap: number;
 }
 
+export type Variant = 'relief' | 'tiling';
+
 export interface Puzzle {
   formatVersion: 1;
   id: string;
   revision: number;
   name: string;
   description: string;
-  variant: 'relief' | 'tiling';
+  variant: Variant;
   geometry: {
     model: 'planar';
     units: 'mm';
@@ -62,10 +64,12 @@ export interface Puzzle {
 
 export interface PuzzleIndexEntry {
   id: string;
+  /** Recipe id; the variants of one construction share footprints and are shown as modes of one puzzle. */
+  construction: string;
   revision: number;
   name: string;
   description: string;
-  variant: 'relief' | 'tiling';
+  variant: Variant;
   pieceCount: number;
   path: string;
   difficulty: DifficultyRating;

@@ -8,7 +8,8 @@ import { snapPose } from '../geometry/snap';
 import {
   browserStore, formatTime, loadSession, newSession, pushUndo, redo, report, saveSession, type Session, undo,
 } from '../sessions/session';
-import { showDifficulty } from '../difficulty/rating';
+import { fetchIndex, showDifficulty } from '../difficulty/rating';
+import { constructions, modeSwitchHtml } from '../gallery/modes';
 import type { Pose, Puzzle } from '../types';
 import { handleRadius, makeGhost, makePiece, makeRotateHandle, makeTray, palette, placeObject, type PieceObject } from './meshes';
 
@@ -39,7 +40,21 @@ export async function startPlayer(root: HTMLElement, puzzleId: string, params: U
   }
   const puzzle: Puzzle = await response.json();
   new Player(root, puzzle, params);
-  void showDifficulty(root, root.querySelector<HTMLElement>('[data-ui="difficulty"]')!, puzzle.id);
+  void showIndexInfo(root, puzzle);
+}
+
+/** Rating and Relief | Flat switch from index.json. On failure the plain badge stays and the rating is hidden. */
+async function showIndexInfo(root: HTMLElement, puzzle: Puzzle): Promise<void> {
+  try {
+    const index = await fetchIndex();
+    const entry = index.puzzles.find((e) => e.id === puzzle.id);
+    if (!entry) return;
+    showDifficulty(root, root.querySelector<HTMLElement>('[data-ui="difficulty"]')!, entry.difficulty);
+    const modes = constructions(index).find((m) => m[puzzle.variant]?.id === puzzle.id);
+    if (modes && Object.keys(modes).length > 1) root.querySelector<HTMLElement>('[data-ui="mode"]')!.innerHTML = modeSwitchHtml(modes, puzzle.variant);
+  } catch (error) {
+    console.warn(`index entry for ${puzzle.id} unavailable`, error);
+  }
 }
 
 export function escapeHtml(text: string): string {
@@ -132,7 +147,7 @@ class Player {
         <header class="bar">
           <a class="back" href="${base}">← Gallery</a>
           <h1>${escapeHtml(p.name)}</h1>
-          <span class="badge">${relief ? 'relief' : 'flat tiling'}</span>
+          <span data-ui="mode"><span class="badge">${relief ? 'relief' : 'flat tiling'}</span></span>
           <span data-ui="difficulty"></span>
           <span class="spacer"></span>
           <button data-ui="rulesButton" type="button">Rules &amp; controls</button>
