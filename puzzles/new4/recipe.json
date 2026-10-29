@@ -1,0 +1,64 @@
+{
+  "formatVersion": 1,
+  "family": "tropical-affine",
+  "convention": "min",
+  "id": "new4",
+  "revision": 1,
+  "pieceCount": 9,
+  "domain": "3",
+  "center": ["-4", "-4"],
+  "xyMmPerUnit": "24",
+  "minThicknessMm": "8",
+  "reliefMm": "35",
+  "trayRimMm": "7",
+  "terms": [
+    { "id": "A", "a": 1, "b": 1, "c": "251/100" },
+    { "id": "B", "a": 2, "b": 1, "c": "138/25" },
+    { "id": "C", "a": 3, "b": 1, "c": "1061/100" },
+    { "id": "D", "a": 1, "b": 2, "c": "289/50" },
+    { "id": "E", "a": 2, "b": 2, "c": "829/100" },
+    { "id": "F", "a": 3, "b": 2, "c": "659/50" },
+    { "id": "G", "a": 1, "b": 3, "c": "274/25" },
+    { "id": "H", "a": 2, "b": 3, "c": "1373/100" },
+    { "id": "I", "a": 3, "b": 3, "c": "18" }
+  ],
+  "variants": [
+    {
+      "id": "new4",
+      "variant": "relief",
+      "name": "9 hard",
+      "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "notes": [
+        "Min-convention tropical polynomial over x, y in [-7, -1]; each piece is the region where one term attains the minimum.",
+        "Exploratory puzzle under evaluation."
+      ]
+    },
+    {
+      "id": "new4-flat",
+      "variant": "tiling",
+      "name": "9 hard (flat)",
+      "description": "The 9 hard footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "flatThicknessMm": "12",
+      "notes": [
+        "Min-convention tropical polynomial over x, y in [-7, -1]; each piece is the region where one term attains the minimum.",
+        "Roof relief removed: every piece has the same uniform thickness."
+      ]
+    }
+  ],
+  "validation": {
+    "contactNoise": 1e-06,
+    "overlapDepth": 0.006,
+    "outsideDepth": 0.006,
+    "areaError": 0.012,
+    "roofMismatch": 0.05,
+    "edgeAngleDeg": 3,
+    "edgeMinOverlap": 0.02
+  },
+  "scramble": {
+    "algorithm": "v1",
+    "defaultSeed": 20261027
+  },
+  "source": {
+    "polynomial": "Min[251/100+x+y,138/25+2 x+y,1061/100+3 x+y,289/50+x+2 y,829/100+2 x+2 y,659/50+3 x+2 y,274/25+x+3 y,1373/100+2 x+3 y,18+3 x+3 y]"
+  }
+}

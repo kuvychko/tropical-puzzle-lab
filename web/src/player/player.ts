@@ -8,6 +8,7 @@ import { snapPose } from '../geometry/snap';
 import {
   browserStore, formatTime, loadSession, newSession, pushUndo, redo, report, saveSession, type Session, undo,
 } from '../sessions/session';
+import { showDifficulty } from '../difficulty/rating';
 import type { Pose, Puzzle } from '../types';
 import { handleRadius, makeGhost, makePiece, makeRotateHandle, makeTray, palette, placeObject, type PieceObject } from './meshes';
 
@@ -38,6 +39,7 @@ export async function startPlayer(root: HTMLElement, puzzleId: string, params: U
   }
   const puzzle: Puzzle = await response.json();
   new Player(root, puzzle, params);
+  void showDifficulty(root, root.querySelector<HTMLElement>('[data-ui="difficulty"]')!, puzzle.id);
 }
 
 export function escapeHtml(text: string): string {
@@ -131,6 +133,7 @@ class Player {
           <a class="back" href="${base}">← Gallery</a>
           <h1>${escapeHtml(p.name)}</h1>
           <span class="badge">${relief ? 'relief' : 'flat tiling'}</span>
+          <span data-ui="difficulty"></span>
           <span class="spacer"></span>
           <button data-ui="rulesButton" type="button">Rules &amp; controls</button>
         </header>

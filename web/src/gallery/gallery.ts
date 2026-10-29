@@ -3,7 +3,8 @@ import { bounds, transform } from '../geometry/polygon';
 import { scramble } from '../geometry/scramble';
 import { escapeHtml } from '../player/player';
 import { browserStore, loadSession } from '../sessions/session';
-import type { Puzzle, PuzzleIndexEntry, Vec2 } from '../types';
+import { bindDifficulty, difficultyHtml, fetchIndex } from '../difficulty/rating';
+import type { Puzzle, Vec2 } from '../types';
 
 const base = import.meta.env.BASE_URL;
 
@@ -26,6 +27,29 @@ function thumbnail(puzzle: Puzzle): string {
   </svg>`;
 }
 
+type Filter = 'all' | 'relief' | 'tiling';
+const FILTER_KEY = 'tpl:gallery:filter';
+const FILTERS: [Filter, string][] = [['all', 'All'], ['relief', 'Relief'], ['tiling', 'Flat']];
+
+/** Show only cards of one variant. The choice is a per-browser convenience; it never affects play. */
+function applyFilter(root: HTMLElement, filter: Filter): void {
+  root.querySelectorAll<HTMLElement>('[data-variant]').forEach((card) => {
+    card.hidden = filter !== 'all' && card.dataset.variant !== filter;
+  });
+  root.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
+  });
+}
+
+function savedFilter(): Filter {
+  try {
+    const value = browserStore()?.getItem(FILTER_KEY);
+    return FILTERS.some(([f]) => f === value) ? (value as Filter) : 'all';
+  } catch {
+    return 'all';
+  }
+}
+
 function progress(puzzle: Puzzle): string {
   const loaded = loadSession(puzzle, browserStore());
   if (loaded.status !== 'ok') return '';
@@ -41,25 +65,45 @@ export async function renderGallery(root: HTMLElement): Promise<void> {
         In the relief puzzles a piece's sloped top is its affine function, so a finished assembly forms one continuous, bowl-shaped roof.
         Fill the square tray with every piece. Pieces can be moved and turned, but not flipped, and nothing snaps into place.</p>
       </header>
+      <div class="filter" role="group" aria-label="Show puzzles">
+        ${FILTERS.map(([f, label]) => `<button type="button" data-filter="${f}">${label}</button>`).join('')}
+      </div>
       <div class="cards" data-cards><p class="loading">Loading puzzles…</p></div>
       <footer class="foot">An experimental tool for studying puzzle construction and difficulty.
         <a href="https://github.com/kuvychko/tropical-puzzle-lab">Source on GitHub</a></footer>
     </div>`;
   const cards = root.querySelector<HTMLElement>('[data-cards]')!;
+  let filter = savedFilter();
+  applyFilter(root, filter);
+  root.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((button) => {
+    button.addEventListener('click', () => {
+      filter = button.dataset.filter as Filter;
+      applyFilter(root, filter);
+      try {
+        browserStore()?.setItem(FILTER_KEY, filter);
+      } catch {
+        // Storage unavailable: the filter still works for this visit.
+      }
+    });
+  });
   try {
-    const index = await fetchJson<{ puzzles: PuzzleIndexEntry[] }>('index.json');
+    const index = await fetchIndex();
     const puzzles = await Promise.all(index.puzzles.map((e) => fetchJson<Puzzle>(e.path)));
+    // The title link stretches over the whole card, so the difficulty button can sit on top of it.
     cards.innerHTML = puzzles
-      .map((p) => `
-        <a class="card" href="${base}?puzzle=${encodeURIComponent(p.id)}">
+      .map((p, i) => `
+        <article class="card" data-variant="${p.variant}">
           ${thumbnail(p)}
           <div class="card-body">
-            <h2>${escapeHtml(p.name)} <span class="badge">${p.variant === 'relief' ? 'relief' : 'flat tiling'}</span></h2>
+            <h2><a class="card-link" href="${base}?puzzle=${encodeURIComponent(p.id)}">${escapeHtml(p.name)}</a> <span class="badge">${p.variant === 'relief' ? 'relief' : 'flat tiling'}</span></h2>
             <p>${escapeHtml(p.description)}</p>
             <p class="meta">${p.pieces.length} pieces · ${escapeHtml(p.id)} rev ${p.revision} ${progress(p)}</p>
+            ${difficultyHtml(index.puzzles[i].difficulty)}
           </div>
-        </a>`)
+        </article>`)
       .join('');
+    bindDifficulty(root);
+    applyFilter(root, filter);
   } catch (error) {
     cards.innerHTML = `<p class="error">Could not load the puzzle list (${escapeHtml(String(error))}).</p>`;
   }

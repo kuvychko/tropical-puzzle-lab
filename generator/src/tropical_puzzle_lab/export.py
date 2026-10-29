@@ -7,6 +7,7 @@ from fractions import Fraction
 from pathlib import Path
 
 from . import __version__
+from .difficulty import config as difficulty_config, puzzle_difficulty
 from .geometry import Polygon, area, centroid, clip, square
 from .tropical import RoofTransform, Term, regions, roof_transform
 
@@ -43,19 +44,24 @@ class Construction:
         self.recipe = recipe
         self.terms = terms_of(recipe)
         self.domain = Fraction(recipe["domain"])
+        self.center = tuple(Fraction(v) for v in recipe.get("center", ("0", "0")))
+        self.convention = recipe.get("convention", "max")
         self.xy = Fraction(recipe["xyMmPerUnit"])
-        self.cells = regions(self.terms, self.domain)
+        self.cells = regions(self.terms, self.domain, self.center, self.convention)
         self.roof: RoofTransform = roof_transform(
             self.terms, self.cells, Fraction(recipe["minThicknessMm"]), Fraction(recipe["reliefMm"])
         )
         self.half_span = self.domain * self.xy
         self.target = square(self.half_span)
-        self.pieces = [[(x * self.xy, y * self.xy) for x, y in cell] for cell in self.cells]
+        # The tray is centred on the origin: physical = xy * (domain point - center).
+        cx, cy = self.center
+        self.pieces = [[((x - cx) * self.xy, (y - cy) * self.xy) for x, y in cell] for cell in self.cells]
 
     def height(self, term: Term, p) -> Fraction:
         """Roof height (mm above the underside) of `term`'s plane at physical point p."""
         r = self.roof
-        return r.min_thickness + r.scale * (term.value((p[0] / self.xy, p[1] / self.xy)) - r.f_min)
+        point = (p[0] / self.xy + self.center[0], p[1] / self.xy + self.center[1])
+        return r.min_thickness + r.scale * (term.value(point) - r.f_min)
 
     def check(self) -> None:
         """Validate the reference assembly exactly; raise AssertionError on failure."""
@@ -132,12 +138,14 @@ def build_puzzle(recipe: dict, variant: dict, construction: Construction | None 
             "notes": variant["notes"],
         },
         "tropical": {
-            "convention": "max",
+            "convention": c.convention,
             "domain": recipe["domain"],
             "xyMmPerUnit": recipe["xyMmPerUnit"],
             "terms": recipe["terms"],
         },
     }
+    if "center" in recipe:
+        puzzle["tropical"]["center"] = recipe["center"]
     puzzle["geometryHash"] = canonical_hash({"variant": puzzle["variant"], "target": target, "pieces": pieces})
     return puzzle
 
@@ -160,10 +168,11 @@ def export_recipe(recipe_path: Path, puzzles_dir: Path) -> list[dict]:
     return written
 
 
-def write_index(puzzles_dir: Path) -> dict:
+def build_index(puzzles_dir: Path) -> dict:
     entries = []
     for path in sorted(puzzles_dir.glob("*/puzzle.json")):
         p = json.loads(path.read_text(encoding="utf-8"))
+        d = puzzle_difficulty(p)
         entries.append({
             "id": p["id"],
             "revision": p["revision"],
@@ -172,9 +181,15 @@ def write_index(puzzles_dir: Path) -> dict:
             "variant": p["variant"],
             "pieceCount": len(p["pieces"]),
             "path": f"{p['id']}/puzzle.json",
+            # Rounded so the committed index does not depend on the last bits of the platform's libm.
+            "difficulty": {"diversity": round(d.diversity, 6), "x": round(d.x, 6), "rating": d.rating},
         })
     order = {"relief": 0, "tiling": 1}
     entries.sort(key=lambda e: (e["id"].split("-")[0], order.get(e["variant"], 9), e["id"]))
-    index = {"formatVersion": FORMAT_VERSION, "puzzles": entries}
+    return {"formatVersion": FORMAT_VERSION, "difficulty": difficulty_config(), "puzzles": entries}
+
+
+def write_index(puzzles_dir: Path) -> dict:
+    index = build_index(puzzles_dir)
     (puzzles_dir / "index.json").write_text(dump(index), encoding="utf-8", newline="\n")
     return index

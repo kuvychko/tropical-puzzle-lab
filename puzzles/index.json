@@ -1,6 +1,130 @@
 {
   "formatVersion": 1,
+  "difficulty": {
+    "method": "leinster-cobbold-intrinsic-volumes",
+    "u": 10.0,
+    "q": 2.0,
+    "direction": "lower-diversity-is-harder",
+    "thresholds": [
+      0.125,
+      0.375,
+      0.625,
+      0.875
+    ]
+  },
   "puzzles": [
+    {
+      "id": "new1",
+      "revision": 1,
+      "name": "16 easy",
+      "description": "Sixteen pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "variant": "relief",
+      "pieceCount": 16,
+      "path": "new1/puzzle.json",
+      "difficulty": {
+        "diversity": 5.446444,
+        "x": 0.29643,
+        "rating": 4
+      }
+    },
+    {
+      "id": "new1-flat",
+      "revision": 1,
+      "name": "16 easy (flat)",
+      "description": "The 16 easy footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "variant": "tiling",
+      "pieceCount": 16,
+      "path": "new1-flat/puzzle.json",
+      "difficulty": {
+        "diversity": 6.426513,
+        "x": 0.361768,
+        "rating": 4
+      }
+    },
+    {
+      "id": "new2",
+      "revision": 1,
+      "name": "16 hard",
+      "description": "Sixteen pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "variant": "relief",
+      "pieceCount": 16,
+      "path": "new2/puzzle.json",
+      "difficulty": {
+        "diversity": 4.496934,
+        "x": 0.233129,
+        "rating": 4
+      }
+    },
+    {
+      "id": "new2-flat",
+      "revision": 1,
+      "name": "16 hard (flat)",
+      "description": "The 16 hard footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "variant": "tiling",
+      "pieceCount": 16,
+      "path": "new2-flat/puzzle.json",
+      "difficulty": {
+        "diversity": 4.78389,
+        "x": 0.252259,
+        "rating": 4
+      }
+    },
+    {
+      "id": "new3",
+      "revision": 1,
+      "name": "9 easy",
+      "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "variant": "relief",
+      "pieceCount": 9,
+      "path": "new3/puzzle.json",
+      "difficulty": {
+        "diversity": 5.681002,
+        "x": 0.585125,
+        "rating": 3
+      }
+    },
+    {
+      "id": "new3-flat",
+      "revision": 1,
+      "name": "9 easy (flat)",
+      "description": "The 9 easy footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "variant": "tiling",
+      "pieceCount": 9,
+      "path": "new3-flat/puzzle.json",
+      "difficulty": {
+        "diversity": 6.633686,
+        "x": 0.704211,
+        "rating": 2
+      }
+    },
+    {
+      "id": "new4",
+      "revision": 1,
+      "name": "9 hard",
+      "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
+      "variant": "relief",
+      "pieceCount": 9,
+      "path": "new4/puzzle.json",
+      "difficulty": {
+        "diversity": 3.500216,
+        "x": 0.312527,
+        "rating": 4
+      }
+    },
+    {
+      "id": "new4-flat",
+      "revision": 1,
+      "name": "9 hard (flat)",
+      "description": "The 9 hard footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "variant": "tiling",
+      "pieceCount": 9,
+      "path": "new4-flat/puzzle.json",
+      "difficulty": {
+        "diversity": 3.939849,
+        "x": 0.367481,
+        "rating": 4
+      }
+    },
     {
       "id": "rev2",
       "revision": 1,
@@ -8,7 +132,12 @@
       "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
       "variant": "relief",
       "pieceCount": 9,
-      "path": "rev2/puzzle.json"
+      "path": "rev2/puzzle.json",
+      "difficulty": {
+        "diversity": 5.09878,
+        "x": 0.512348,
+        "rating": 3
+      }
     },
     {
       "id": "rev2-flat",
@@ -17,7 +146,12 @@
       "description": "The rev2 footprints with the relief removed. Fill the square tray; heights give no clues.",
       "variant": "tiling",
       "pieceCount": 9,
-      "path": "rev2-flat/puzzle.json"
+      "path": "rev2-flat/puzzle.json",
+      "difficulty": {
+        "diversity": 4.482502,
+        "x": 0.435313,
+        "rating": 3
+      }
     }
   ]
 }

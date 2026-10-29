@@ -1,4 +1,4 @@
-"""Cells and roof of a max-convention tropical polynomial over a square domain."""
+"""Cells and roof of a max- or min-convention tropical polynomial over a square domain."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -20,20 +20,26 @@ class Term:
         return self.a * p[0] + self.b * p[1] + self.c
 
 
-def regions(terms: list[Term], domain: Fraction) -> list[Polygon]:
-    """Region where each term attains the maximum, cropped to [-domain, domain]^2.
+CONVENTIONS = {"max": 1, "min": -1}
+
+
+def regions(terms: list[Term], domain: Fraction, center=(0, 0), convention: str = "max") -> list[Polygon]:
+    """Region where each term attains the maximum (or minimum), cropped to the
+    square of half-width `domain` around `center`.
 
     Same construction as `regions` in the rev2 `search.py`: intersect the
     pairwise dominance half-planes with the domain. Raises if a term has no
     two-dimensional cell.
     """
+    s = CONVENTIONS[convention]
+    box = [(x + center[0], y + center[1]) for x, y in square(domain)]
     result = []
     for ti in terms:
-        p = square(domain)
+        p = box
         for tj in terms:
             if tj is ti:
                 continue
-            p = clip(p, (ti.a - tj.a, ti.b - tj.b), tj.c - ti.c)
+            p = clip(p, (s * (ti.a - tj.a), s * (ti.b - tj.b)), s * (tj.c - ti.c))
             if len(p) < 3:
                 break
         if area(p) <= 0:
@@ -42,8 +48,9 @@ def regions(terms: list[Term], domain: Fraction) -> list[Polygon]:
     return result
 
 
-def tropical_value(terms: list[Term], p) -> Fraction:
-    return max(t.value(p) for t in terms)
+def tropical_value(terms: list[Term], p, convention: str = "max") -> Fraction:
+    values = [t.value(p) for t in terms]
+    return max(values) if convention == "max" else min(values)
 
 
 @dataclass(frozen=True)

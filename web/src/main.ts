@@ -9,6 +9,9 @@ const root = document.getElementById('app')!;
 
 if (puzzleId && /^[a-z0-9][a-z0-9-]*$/.test(puzzleId)) {
   void startPlayer(root, puzzleId, params);
+} else if (params.get('page') === 'difficulty') {
+  // Loaded on demand so KaTeX is only fetched for this page.
+  void import('./difficulty/page').then((page) => page.renderDifficultyPage(root));
 } else {
   void renderGallery(root);
 }

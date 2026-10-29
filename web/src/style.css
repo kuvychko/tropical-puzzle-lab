@@ -39,11 +39,43 @@ button:hover:not(:disabled) { border-color: var(--accent); }
 button:disabled { opacity: 0.45; cursor: default; }
 .badge { font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); vertical-align: middle; }
 .loading, .error { padding: 24px; color: var(--muted); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Difficulty: five pips in a badge-like pill; the explanation link pops up on hover, focus or tap. */
+.difficulty { position: relative; z-index: 2; display: inline-block; }
+.difficulty-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; color: var(--muted); background: transparent;
+}
+.pips { display: inline-flex; gap: 3px; }
+.pips i { width: 7px; height: 7px; border-radius: 50%; border: 1px solid currentColor; }
+.pips i.on { background: var(--text); border-color: var(--text); }
+/* Hidden with opacity, not visibility, so the link stays in the Tab order and appears when focused. */
+.difficulty-pop { position: absolute; left: 0; opacity: 0; pointer-events: none; transition: opacity 0.12s; white-space: nowrap; }
+.difficulty-above .difficulty-pop { bottom: 100%; padding-bottom: 4px; }
+.difficulty-below .difficulty-pop { top: 100%; padding-top: 4px; }
+.difficulty-pop a {
+  display: block; font-size: 13px; padding: 4px 10px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+}
+/* :focus-visible, not :focus-within, so a tap (which also focuses the button) can close it again. */
+.difficulty:has(:focus-visible) .difficulty-pop, .difficulty.open .difficulty-pop { opacity: 1; pointer-events: auto; }
+@media (hover: hover) {
+  .difficulty:hover .difficulty-pop { opacity: 1; pointer-events: auto; }
+}
 
 /* Gallery */
 .gallery { max-width: 980px; margin: 0 auto; padding: 32px 16px 48px; }
 .intro h1 { font-size: 30px; font-weight: 600; margin: 0 0 8px; }
 .intro p { max-width: 68ch; color: var(--muted); margin: 0 0 28px; }
+.filter { display: flex; gap: 6px; margin: 0 0 16px; }
+.filter button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.card[hidden] { display: none; }
+.cards .card { position: relative; }
+.card-link { color: inherit; text-decoration: none; }
+.card-link::after { content: ''; position: absolute; inset: 0; }
+.card-link:focus-visible { outline: none; }
+.card:has(.card-link:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
 .card { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: inherit; text-decoration: none; }
 .card:hover { border-color: var(--accent); }
@@ -57,6 +89,19 @@ button:disabled { opacity: 0.45; cursor: default; }
 .progress { margin-left: 6px; color: var(--accent); }
 .progress.solved { color: var(--good); }
 .foot { margin-top: 36px; font-size: 13px; color: var(--muted); }
+
+/* Explanation pages */
+.doc { max-width: 760px; }
+.doc .intro { margin-top: 12px; }
+.doc h2 { font-size: 20px; font-weight: 600; margin: 28px 0 8px; }
+.doc p { margin: 0 0 12px; }
+.doc .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.table-wrap { overflow-x: auto; margin: 8px 0 16px; }
+.data { border-collapse: collapse; font-size: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.data th, .data td { padding: 6px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.data th { font-weight: 600; color: var(--muted); }
+.data .num { text-align: right; font-variant-numeric: tabular-nums; }
+.data .pips { vertical-align: middle; margin-right: 4px; color: var(--muted); }
 
 /* Player */
 .player { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr; }
@@ -86,7 +131,7 @@ button:disabled { opacity: 0.45; cursor: default; }
   position: absolute; left: 16px; bottom: 16px; max-width: min(560px, calc(100% - 32px)); padding: 8px 12px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; word-break: break-word;
 }
-.rules { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(0 0 0 / 0.35); padding: 16px; }
+.rules { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: rgb(0 0 0 / 0.35); padding: 16px; }
 .rules .card { max-width: 560px; max-height: 100%; overflow: auto; padding: 20px 24px; cursor: default; }
 .rules h2 { margin: 0 0 6px; font-size: 20px; }
 .rules h3 { margin: 16px 0 4px; font-size: 15px; }
