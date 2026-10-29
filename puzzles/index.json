@@ -15,6 +15,7 @@
   "puzzles": [
     {
       "id": "new1",
+      "construction": "new1",
       "revision": 1,
       "name": "16 easy",
       "description": "Sixteen pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
@@ -29,6 +30,7 @@
     },
     {
       "id": "new1-flat",
+      "construction": "new1",
       "revision": 1,
       "name": "16 easy (flat)",
       "description": "The 16 easy footprints with the relief removed. Fill the square tray; heights give no clues.",
@@ -43,6 +45,7 @@
     },
     {
       "id": "new2",
+      "construction": "new2",
       "revision": 1,
       "name": "16 hard",
       "description": "Sixteen pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
@@ -57,6 +60,7 @@
     },
     {
       "id": "new2-flat",
+      "construction": "new2",
       "revision": 1,
       "name": "16 hard (flat)",
       "description": "The 16 hard footprints with the relief removed. Fill the square tray; heights give no clues.",
@@ -71,6 +75,7 @@
     },
     {
       "id": "new3",
+      "construction": "new3",
       "revision": 1,
       "name": "9 easy",
       "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
@@ -85,6 +90,7 @@
     },
     {
       "id": "new3-flat",
+      "construction": "new3",
       "revision": 1,
       "name": "9 easy (flat)",
       "description": "The 9 easy footprints with the relief removed. Fill the square tray; heights give no clues.",
@@ -99,6 +105,7 @@
     },
     {
       "id": "new4",
+      "construction": "new4",
       "revision": 1,
       "name": "9 hard",
       "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
@@ -113,6 +120,7 @@
     },
     {
       "id": "new4-flat",
+      "construction": "new4",
       "revision": 1,
       "name": "9 hard (flat)",
       "description": "The 9 hard footprints with the relief removed. Fill the square tray; heights give no clues.",
@@ -127,6 +135,7 @@
     },
     {
       "id": "rev2",
+      "construction": "rev2",
       "revision": 1,
       "name": "Rev 2",
       "description": "Nine pieces with sloped tops. Fill the square tray so the roof forms one continuous surface.",
@@ -141,6 +150,7 @@
     },
     {
       "id": "rev2-flat",
+      "construction": "rev2",
       "revision": 1,
       "name": "Rev 2 (flat)",
       "description": "The rev2 footprints with the relief removed. Fill the square tray; heights give no clues.",

@@ -43,14 +43,8 @@ export async function fetchIndex(): Promise<PuzzleIndex> {
   return response.json();
 }
 
-/** Fill a placeholder with the puzzle's rating from index.json. Failure only hides the rating. */
-export async function showDifficulty(root: HTMLElement, slot: HTMLElement, puzzleId: string): Promise<void> {
-  try {
-    const entry = (await fetchIndex()).puzzles.find((e) => e.id === puzzleId);
-    if (!entry) return;
-    slot.innerHTML = difficultyHtml(entry.difficulty, 'below');
-    bindDifficulty(root);
-  } catch (error) {
-    console.warn(`difficulty for ${puzzleId} unavailable`, error);
-  }
+/** Fill a placeholder with a rating whose link pops up below it. */
+export function showDifficulty(root: HTMLElement, slot: HTMLElement, d: DifficultyRating): void {
+  slot.innerHTML = difficultyHtml(d, 'below');
+  bindDifficulty(root);
 }

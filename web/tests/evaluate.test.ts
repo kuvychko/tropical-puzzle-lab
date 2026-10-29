@@ -121,6 +121,30 @@ describe('relief vs tiling', () => {
   });
 });
 
+describe('rotated assemblies', () => {
+  // Completion never compares against the reference poses, so the whole reference assembly turned
+  // by a symmetry of the square tray is also a solution.
+  const ids: string[] = JSON.parse(readFileSync(new URL('../../puzzles/index.json', import.meta.url), 'utf-8')).puzzles.map((e: { id: string }) => e.id);
+
+  it.each(ids)('%s is solved with the reference turned by 90°, 180° and 270°', (id) => {
+    const puzzle = load(id);
+    const target = puzzle.geometry.target.vertices;
+    const cx = target.reduce((s, v) => s + v[0], 0) / target.length;
+    const cy = target.reduce((s, v) => s + v[1], 0) / target.length;
+    for (const k of [1, 2, 3]) {
+      const a = (k * Math.PI) / 2;
+      const [c, s] = [Math.cos(a), Math.sin(a)];
+      const poses = reference(puzzle).map((q) => ({
+        ...q,
+        x: cx + c * (q.x - cx) - s * (q.y - cy),
+        y: cy + s * (q.x - cx) + c * (q.y - cy),
+        theta: q.theta + a,
+      }));
+      expect(evaluate(puzzle, poses).solved, `${id} at ${k * 90}°`).toBe(true);
+    }
+  });
+});
+
 describe('scramble', () => {
   it('is deterministic for a seed and differs between seeds', () => {
     expect(scramble(rev2, 42)).toEqual(scramble(rev2, 42));

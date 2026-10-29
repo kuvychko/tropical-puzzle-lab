@@ -1,10 +1,11 @@
-// Gallery: one card per puzzle. Thumbnails show the frame and a scrambled layout, never the reference assembly.
+// Gallery: one card per construction, with its relief and flat modes. Thumbnails show the frame and a scrambled layout, never the reference assembly.
 import { bounds, transform } from '../geometry/polygon';
 import { scramble } from '../geometry/scramble';
 import { escapeHtml } from '../player/player';
 import { browserStore, loadSession } from '../sessions/session';
 import { bindDifficulty, difficultyHtml, fetchIndex } from '../difficulty/rating';
-import type { Puzzle, Vec2 } from '../types';
+import { constructions, MODES, puzzleHref } from './modes';
+import type { Puzzle, Variant, Vec2 } from '../types';
 
 const base = import.meta.env.BASE_URL;
 
@@ -27,26 +28,27 @@ function thumbnail(puzzle: Puzzle): string {
   </svg>`;
 }
 
-type Filter = 'all' | 'relief' | 'tiling';
-const FILTER_KEY = 'tpl:gallery:filter';
-const FILTERS: [Filter, string][] = [['all', 'All'], ['relief', 'Relief'], ['tiling', 'Flat']];
+const MODE_KEY = 'tpl:gallery:mode';
 
-/** Show only cards of one variant. The choice is a per-browser convenience; it never affects play. */
-function applyFilter(root: HTMLElement, filter: Filter): void {
-  root.querySelectorAll<HTMLElement>('[data-variant]').forEach((card) => {
-    card.hidden = filter !== 'all' && card.dataset.variant !== filter;
+/** Point each card at the preferred mode. The choice is a per-browser convenience; it never affects play. */
+function applyMode(root: HTMLElement, mode: Variant): void {
+  root.querySelectorAll<HTMLElement>('.card').forEach((card) => {
+    const shown = card.querySelector<HTMLElement>(`[data-mode="${mode}"]`) ? mode : card.dataset.only!;
+    card.querySelector<HTMLAnchorElement>('.card-link')!.href = card.querySelector<HTMLAnchorElement>(`[data-mode="${shown}"] .mode-link`)!.href;
+    card.querySelectorAll<HTMLElement>('[data-mode]').forEach((row) => row.classList.toggle('preferred', row.dataset.mode === shown));
+    card.querySelectorAll<HTMLElement>('[data-description]').forEach((p) => { p.hidden = p.dataset.description !== shown; });
   });
-  root.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((button) => {
-    button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
+  root.querySelectorAll<HTMLButtonElement>('[data-open-in]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.openIn === mode));
   });
 }
 
-function savedFilter(): Filter {
+function savedMode(): Variant {
   try {
-    const value = browserStore()?.getItem(FILTER_KEY);
-    return FILTERS.some(([f]) => f === value) ? (value as Filter) : 'all';
+    const value = browserStore()?.getItem(MODE_KEY);
+    return MODES.some(([m]) => m === value) ? (value as Variant) : 'relief';
   } catch {
-    return 'all';
+    return 'relief';
   }
 }
 
@@ -61,49 +63,64 @@ export async function renderGallery(root: HTMLElement): Promise<void> {
     <div class="gallery">
       <header class="intro">
         <h1>Tropical Puzzle Lab</h1>
-        <p>Each piece is one region of a tropical polynomial: the maximum of a few affine functions.
-        In the relief puzzles a piece's sloped top is its affine function, so a finished assembly forms one continuous, bowl-shaped roof.
+        <p>Each piece is one region of a tropical polynomial: the maximum, or in some puzzles the minimum, of a few affine functions.
+        In the relief puzzles a piece's sloped top is its affine function, so a finished assembly forms one continuous roof: bowl-shaped for a maximum, rising to ridges for a minimum.
         Fill the square tray with every piece. Pieces can be moved and turned, but not flipped, and nothing snaps into place.</p>
+        <p>Every puzzle can be played in relief or flat, with the heights removed. Choose a mode on the card or switch inside the puzzle; each mode keeps its own progress.</p>
       </header>
-      <div class="filter" role="group" aria-label="Show puzzles">
-        ${FILTERS.map(([f, label]) => `<button type="button" data-filter="${f}">${label}</button>`).join('')}
+      <div class="filter" role="group" aria-label="Open puzzles in">
+        <span class="filter-label">Open in</span>
+        ${MODES.map(([m, label]) => `<button type="button" data-open-in="${m}">${label}</button>`).join('')}
       </div>
       <div class="cards" data-cards><p class="loading">Loading puzzles…</p></div>
       <footer class="foot">An experimental tool for studying puzzle construction and difficulty.
         <a href="https://github.com/kuvychko/tropical-puzzle-lab">Source on GitHub</a></footer>
     </div>`;
   const cards = root.querySelector<HTMLElement>('[data-cards]')!;
-  let filter = savedFilter();
-  applyFilter(root, filter);
-  root.querySelectorAll<HTMLButtonElement>('[data-filter]').forEach((button) => {
+  let mode = savedMode();
+  applyMode(root, mode);
+  root.querySelectorAll<HTMLButtonElement>('[data-open-in]').forEach((button) => {
     button.addEventListener('click', () => {
-      filter = button.dataset.filter as Filter;
-      applyFilter(root, filter);
+      mode = button.dataset.openIn as Variant;
+      applyMode(root, mode);
       try {
-        browserStore()?.setItem(FILTER_KEY, filter);
+        browserStore()?.setItem(MODE_KEY, mode);
       } catch {
-        // Storage unavailable: the filter still works for this visit.
+        // Storage unavailable: the choice still works for this visit.
       }
     });
   });
   try {
     const index = await fetchIndex();
-    const puzzles = await Promise.all(index.puzzles.map((e) => fetchJson<Puzzle>(e.path)));
-    // The title link stretches over the whole card, so the difficulty button can sit on top of it.
-    cards.innerHTML = puzzles
-      .map((p, i) => `
-        <article class="card" data-variant="${p.variant}">
-          ${thumbnail(p)}
+    const puzzles = new Map(
+      await Promise.all(index.puzzles.map(async (e) => [e.id, await fetchJson<Puzzle>(e.path)] as const)),
+    );
+    // The title link stretches over the whole card, so the mode links and difficulty buttons sit on top of it.
+    cards.innerHTML = constructions(index)
+      .map((modes) => {
+        const present = MODES.filter(([m]) => modes[m]);
+        const main = modes[present[0][0]]!;
+        const first = puzzles.get(main.id)!;
+        return `
+        <article class="card" data-only="${present[0][0]}">
+          ${thumbnail(first)}
           <div class="card-body">
-            <h2><a class="card-link" href="${base}?puzzle=${encodeURIComponent(p.id)}">${escapeHtml(p.name)}</a> <span class="badge">${p.variant === 'relief' ? 'relief' : 'flat tiling'}</span></h2>
-            <p>${escapeHtml(p.description)}</p>
-            <p class="meta">${p.pieces.length} pieces · ${escapeHtml(p.id)} rev ${p.revision} ${progress(p)}</p>
-            ${difficultyHtml(index.puzzles[i].difficulty)}
+            <h2><a class="card-link" href="${puzzleHref(main.id)}">${escapeHtml(main.name)}</a></h2>
+            ${present.map(([m]) => `<p data-description="${m}">${escapeHtml(modes[m]!.description)}</p>`).join('')}
+            <p class="meta">${first.pieces.length} pieces · ${escapeHtml(main.construction)} rev ${main.revision}</p>
+            <ul class="card-modes">
+              ${present.map(([m, label]) => `
+                <li data-mode="${m}">
+                  <a class="mode-link" href="${puzzleHref(modes[m]!.id)}">${label}</a>
+                  ${difficultyHtml(modes[m]!.difficulty)}${progress(puzzles.get(modes[m]!.id)!)}
+                </li>`).join('')}
+            </ul>
           </div>
-        </article>`)
+        </article>`;
+      })
       .join('');
     bindDifficulty(root);
-    applyFilter(root, filter);
+    applyMode(root, mode);
   } catch (error) {
     cards.innerHTML = `<p class="error">Could not load the puzzle list (${escapeHtml(String(error))}).</p>`;
   }

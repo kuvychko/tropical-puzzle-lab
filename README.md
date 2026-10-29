@@ -6,9 +6,9 @@ Generate, explore, and solve tropical geometry puzzles in the browser: a laborat
 
 ## The idea
 
-A tropical polynomial in max convention is the maximum of a few affine functions, F(x, y) = max(aᵢx + bᵢy + cᵢ). The plane splits into convex regions, one for each term that wins there, and the boundaries between them form a tropical curve.
+A tropical polynomial in max convention is the maximum of a few affine functions, F(x, y) = max(aᵢx + bᵢy + cᵢ); in min convention it is the minimum. The plane splits into convex regions, one for each term that wins there, and the boundaries between them form a tropical curve.
 
-Each region becomes a puzzle piece. In the **relief** puzzles a piece's top is the plane of its own term, so a correct assembly forms one continuous, bowl-shaped roof. In the **flat** variants the heights are removed and only the outlines matter.
+Each region becomes a puzzle piece. In the **relief** puzzles a piece's top is the plane of its own term, so a correct assembly forms one continuous roof: bowl-shaped for max-convention puzzles such as rev2, rising to ridges for min-convention ones such as new1–new4. In the **flat** variants the heights are removed and only the outlines matter. Each puzzle has one gallery card, and you can switch between the two modes; each mode keeps its own progress.
 
 The first puzzle is **rev2**: nine pieces, four of them fully interior, which was originally designed as a 3D-printed puzzle in a 144 mm tray (see [puzzles/rev2/provenance.md](puzzles/rev2/provenance.md)).
 
@@ -33,7 +33,7 @@ Progress is saved in your browser. **Copy report line** gives a line like `puzzl
 
 Working:
 
-- Gallery with both rev2 variants.
+- Gallery with one card per puzzle (rev2 and four new ones), each playable in relief or flat mode.
 - Seeded scrambles, with direct links such as `?puzzle=rev2&seed=123`.
 - Moving, turning and nudging pieces.
 - Overlap colouring and tolerance-based completion (including roof continuity for relief).
