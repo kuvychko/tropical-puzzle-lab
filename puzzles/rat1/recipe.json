@@ -1,0 +1,66 @@
+{
+  "formatVersion": 1,
+  "family": "tropical-rational",
+  "convention": "max",
+  "id": "rat1",
+  "revision": 1,
+  "pieceCount": 11,
+  "domain": "4",
+  "xyMmPerUnit": "18",
+  "minThicknessMm": "8",
+  "reliefMm": "35",
+  "trayRimMm": "7",
+  "numerator": [
+    { "id": "A", "a": 1, "b": 3, "c": "12/5" },
+    { "id": "B", "a": 3, "b": 3, "c": "-11/20" },
+    { "id": "C", "a": 1, "b": 1, "c": "12/5" },
+    { "id": "D", "a": 1, "b": 0, "c": "13/20" }
+  ],
+  "denominator": [
+    { "id": "a", "a": 3, "b": 0, "c": "-3/5" },
+    { "id": "b", "a": 0, "b": 1, "c": "9/10" },
+    { "id": "c", "a": 1, "b": 1, "c": "57/20" },
+    { "id": "d", "a": 3, "b": 1, "c": "43/20" }
+  ],
+  "variants": [
+    {
+      "id": "rat1",
+      "variant": "relief",
+      "name": "11 rational",
+      "description": "Eleven pieces whose roofs form valleys and ridges. Fill the square tray so the roof forms one continuous surface.",
+      "notes": [
+        "Tropical rational function P ⊘ Q = P − Q (max convention) over x, y in [-4, 4]; each piece is a cell of the common refinement of P and Q.",
+        "Found by generator/scripts/search_rational.py --seed 4 --samples 15000 (sample 13077).",
+        "Exploratory puzzle under evaluation."
+      ]
+    },
+    {
+      "id": "rat1-flat",
+      "variant": "tiling",
+      "name": "11 rational (flat)",
+      "description": "The 11 rational footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "flatThicknessMm": "12",
+      "notes": [
+        "Tropical rational function P ⊘ Q = P − Q (max convention) over x, y in [-4, 4]; each piece is a cell of the common refinement of P and Q.",
+        "Roof relief removed: every piece has the same uniform thickness."
+      ]
+    }
+  ],
+  "validation": {
+    "contactNoise": 1e-06,
+    "overlapDepth": 0.006,
+    "outsideDepth": 0.006,
+    "areaError": 0.012,
+    "roofMismatch": 0.05,
+    "edgeAngleDeg": 3,
+    "edgeMinOverlap": 0.02
+  },
+  "scramble": {
+    "algorithm": "v1",
+    "defaultSeed": 20261029
+  },
+  "source": {
+    "rational": "Max[12/5+x+3 y,-11/20+3 x+3 y,12/5+x+y,13/20+x] - Max[-3/5+3 x,9/10+y,57/20+x+y,43/20+3 x+y]",
+    "search": "generator/scripts/search_rational.py --seed 4 --samples 15000, sample 13077"
+  }
+}

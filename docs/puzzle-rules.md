@@ -19,7 +19,7 @@ These are the play rules agreed in [project.md](project.md), as the player imple
 
 The same construction can be played two ways.
 
-- **Relief** (for example `rev2`): each piece's top is the plane of its tropical term. The puzzle is solved when the footprints fill the tray *and* neighbouring roofs agree in height along every shared edge, so the roof is one continuous surface.
+- **Relief** (for example `rev2`): each piece's top is the plane of its tropical term (for a rational puzzle such as `rat1`, the difference of its numerator and denominator terms). The puzzle is solved when the footprints fill the tray *and* neighbouring roofs agree in height along every shared edge, so the roof is one continuous surface.
 - **Tiling** (for example `rev2-flat`): the relief is removed and every piece has the same thickness. The puzzle is solved when the footprints fill the tray.
 
 The gallery shows the variants of one construction as one card, and the player has a **Relief | Flat** switch. The variants share footprints, tolerances and scramble seeds, but each is still its own puzzle with its own id, saved attempt and report line. Switching opens the other variant's attempt; it never carries piece positions across, so a flat attempt never benefits from having seen the roofs.

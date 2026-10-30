@@ -10,7 +10,7 @@ from tropical_puzzle_lab.stl import (
 )
 
 PUZZLES = Path(__file__).resolve().parents[2] / "puzzles"
-PUZZLE_IDS = ["rev2", "new2", "new2-flat"]
+PUZZLE_IDS = ["rev2", "new2", "new2-flat", "rat1"]
 
 
 def load(puzzle_id):

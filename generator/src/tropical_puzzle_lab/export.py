@@ -8,8 +8,8 @@ from pathlib import Path
 
 from . import __version__
 from .difficulty import config as difficulty_config, puzzle_difficulty
-from .geometry import Polygon, area, centroid, clip, square
-from .tropical import RoofTransform, Term, regions, roof_transform
+from .geometry import Polygon, area, centroid, intersect, square
+from .tropical import RoofTransform, Term, refine, regions, roof_transform
 
 FORMAT_VERSION = 1
 
@@ -23,18 +23,17 @@ def canonical_hash(obj) -> str:
     return hashlib.sha256(text.encode("ascii")).hexdigest()
 
 
-def terms_of(recipe: dict) -> list[Term]:
-    return [Term(t["id"], int(t["a"]), int(t["b"]), Fraction(t["c"])) for t in recipe["terms"]]
+def terms_of(recipe: dict, key: str = "terms") -> list[Term]:
+    return [Term(t["id"], int(t["a"]), int(t["b"]), Fraction(t["c"])) for t in recipe[key]]
+
+
+def is_rational(recipe: dict) -> bool:
+    """A tropical rational function P - Q (`numerator`, `denominator`) rather than a polynomial (`terms`)."""
+    return "numerator" in recipe
 
 
 def intersection_area(p: Polygon, q: Polygon) -> Fraction:
-    out = p
-    for a, b in zip(q, q[1:] + q[:1]):
-        # Keep the left side of each CCW edge of q.
-        out = clip(out, (a[1] - b[1], b[0] - a[0]), (a[1] - b[1]) * a[0] + (b[0] - a[0]) * a[1])
-        if len(out) < 3:
-            return Fraction(0)
-    return area(out)
+    return area(intersect(p, q))
 
 
 class Construction:
@@ -42,12 +41,18 @@ class Construction:
 
     def __init__(self, recipe: dict):
         self.recipe = recipe
-        self.terms = terms_of(recipe)
         self.domain = Fraction(recipe["domain"])
         self.center = tuple(Fraction(v) for v in recipe.get("center", ("0", "0")))
         self.convention = recipe.get("convention", "max")
         self.xy = Fraction(recipe["xyMmPerUnit"])
-        self.cells = regions(self.terms, self.domain, self.center, self.convention)
+        if is_rational(recipe):
+            # One affine piece (numerator term minus denominator term) per cell of the common refinement.
+            self.terms, self.cells = refine(
+                terms_of(recipe, "numerator"), terms_of(recipe, "denominator"), self.domain, self.center, self.convention
+            )
+        else:
+            self.terms = terms_of(recipe)
+            self.cells = regions(self.terms, self.domain, self.center, self.convention)
         self.roof: RoofTransform = roof_transform(
             self.terms, self.cells, Fraction(recipe["minThicknessMm"]), Fraction(recipe["reliefMm"])
         )
@@ -141,9 +146,13 @@ def build_puzzle(recipe: dict, variant: dict, construction: Construction | None 
             "convention": c.convention,
             "domain": recipe["domain"],
             "xyMmPerUnit": recipe["xyMmPerUnit"],
-            "terms": recipe["terms"],
         },
     }
+    if is_rational(recipe):
+        puzzle["tropical"]["numerator"] = recipe["numerator"]
+        puzzle["tropical"]["denominator"] = recipe["denominator"]
+    else:
+        puzzle["tropical"]["terms"] = recipe["terms"]
     if "center" in recipe:
         puzzle["tropical"]["center"] = recipe["center"]
     puzzle["geometryHash"] = canonical_hash({"variant": puzzle["variant"], "target": target, "pieces": pieces})

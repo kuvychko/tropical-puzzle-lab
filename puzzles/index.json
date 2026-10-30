@@ -134,6 +134,36 @@
       }
     },
     {
+      "id": "rat1",
+      "construction": "rat1",
+      "revision": 1,
+      "name": "11 rational",
+      "description": "Eleven pieces whose roofs form valleys and ridges. Fill the square tray so the roof forms one continuous surface.",
+      "variant": "relief",
+      "pieceCount": 11,
+      "path": "rat1/puzzle.json",
+      "difficulty": {
+        "diversity": 4.891978,
+        "x": 0.389198,
+        "rating": 3
+      }
+    },
+    {
+      "id": "rat1-flat",
+      "construction": "rat1",
+      "revision": 1,
+      "name": "11 rational (flat)",
+      "description": "The 11 rational footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "variant": "tiling",
+      "pieceCount": 11,
+      "path": "rat1-flat/puzzle.json",
+      "difficulty": {
+        "diversity": 4.538006,
+        "x": 0.353801,
+        "rating": 4
+      }
+    },
+    {
       "id": "rev2",
       "construction": "rev2",
       "revision": 1,
