@@ -21,7 +21,7 @@ The first puzzle is **rev2**: nine pieces, four of them fully interior, which wa
 | Nudge | Arrow keys move 1 mm (Shift: 0.1 mm); Q / E turn 1° (Shift: 0.1°) |
 | Select | Click; Tab cycles; click the same spot again to reach a piece underneath |
 | Camera (as in PrusaSlicer) | Left-drag empty space orbits, right- or middle-drag pans, the wheel zooms toward the cursor |
-| Views | 0 iso, 1 top, 3 front, 4 rear, 5 left, 6 right, Z zoom to fit (also buttons in the panel) |
+| Views | 0 iso, 1 top, 3 front, 4 rear, 5 left, 6 right (side views at table level, to compare heights), Z zoom to fit (also buttons in the panel). The camera can orbit down to table level. Dragging pieces is paused at grazing angles; keyboard nudges still work |
 | History | Ctrl+Z undo, Ctrl+Shift+Z redo, Restart, New scramble |
 | Sticky edges | Optional, off by default (checkbox or S): a released piece aligns flush with a tray wall or piece edge it is already next to |
 
