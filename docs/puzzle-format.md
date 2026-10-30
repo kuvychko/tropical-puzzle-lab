@@ -50,6 +50,14 @@ A pose `{id, x, y, theta}` places a piece by rotating its local polygon counter-
 
 The **v1 scramble** is a seeded mulberry32 PRNG (`web/src/geometry/scramble.ts`). Pieces are taken in order. Each gets a uniform rotation, then rejection-sampled positions in a band around the tray, at least 3% of the span away from the tray and from the other pieces. The band widens if needed. Changing the algorithm requires a new version name, because existing seeds would otherwise produce different layouts.
 
+## Print files (`tpl-stl`)
+
+`tpl-stl <puzzle id>` reads a generated `puzzle.json` and writes `print/<puzzle id>/piece-<id>.stl`, `tray.stl` and `SETTINGS.txt` (binary STL, mm). These are fabrication outputs, not puzzle data: they are gitignored and never read back.
+
+- Each footprint edge is offset inward by `--xy-inset` mm (default 0.15). The roof plane is unchanged and evaluated on the smaller footprint. There is no Z compensation.
+- `--orientation roof-down` (default) rotates each piece so its roof plane lies on z = 0, the print bed. `underside-down` keeps the underside on z = 0. Both are closed, outward-wound meshes, with the origin over the ideal footprint's centroid.
+- The tray is one watertight solid: a cavity of the target square, `trayRimMm` deep, over a `--floor` (default 3 mm) with `--wall` (default 4 mm) walls, as in rev2.
+
 ## Gallery index (`index.json`)
 
 | Field | Contents |

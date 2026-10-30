@@ -44,6 +44,20 @@ Working:
 
 Planned: more puzzles and parametric families, an explode/illustration mode, session export, mobile input, automated solvers and difficulty studies. Difficulty is a research question; nothing here classifies it yet.
 
+## Printing
+
+`tpl-stl <puzzle id>` writes binary STL files for every piece, the tray and a `SETTINGS.txt` into `print/<puzzle id>/` (gitignored; regenerate them whenever you need them):
+
+```sh
+tpl-stl new2                 # relief pieces of 16 hard
+tpl-stl new2-flat            # the same footprints at uniform thickness
+tpl-stl new2 --xy-inset 0.2 --orientation underside-down
+```
+
+- **Clearance.** `--xy-inset` (default 0.15 mm) moves every footprint edge inward perpendicular to itself, as in the rev2 print files: 0.3 mm between neighbours, 0.15 mm to the tray wall. Roof planes are kept, with no Z compensation. The tray cavity is the exact target square.
+- **Orientation.** By default each piece is turned over so its **roof lies on the bed**. The visible top is then the smooth first layer, and the stair-stepping of the sloped surface ends up on the hidden underside. The side walls lean by the roof's tilt (at most about 16° for new1–new4, 26° for rev2), so no supports are needed. `--orientation underside-down` prints pieces the way they sit in the tray.
+- Print at 100% scale, separate parts, with your usual elephant-foot compensation. Physical fit is untested.
+
 ## Repository
 
 | Path | Contents |
@@ -57,6 +71,7 @@ Planned: more puzzles and parametric families, an explode/illustration mode, ses
 # generator
 python -m venv .venv && .venv/Scripts/pip install -e "generator[test]"   # .venv/bin on macOS/Linux
 cd generator && pytest && tpl-export
+tpl-stl new2                                     # printable STLs into print/new2/
 
 # web
 cd web && npm install && npm run dev      # http://localhost:5173/tropical-puzzle-lab/
