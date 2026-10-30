@@ -69,5 +69,16 @@ def centroid(poly: Polygon) -> Point:
     return (cx / a6, cy / a6)
 
 
+def intersect(p: Polygon, q: Polygon) -> Polygon:
+    """Intersection of two convex CCW polygons (empty if it has no area)."""
+    out = p
+    for a, b in zip(q, q[1:] + q[:1]):
+        # Keep the left side of each CCW edge of q.
+        out = clip(out, (a[1] - b[1], b[0] - a[0]), (a[1] - b[1]) * a[0] + (b[0] - a[0]) * a[1])
+        if len(out) < 3:
+            return []
+    return out
+
+
 def square(half: Fraction) -> Polygon:
     return [(-half, -half), (half, -half), (half, half), (-half, half)]

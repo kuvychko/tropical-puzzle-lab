@@ -1,10 +1,10 @@
-"""Cells and roof of a max- or min-convention tropical polynomial over a square domain."""
+"""Cells and roof of a max- or min-convention tropical polynomial, or rational function, over a square domain."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from fractions import Fraction
 
-from .geometry import Polygon, area, clip, square
+from .geometry import Polygon, area, clip, intersect, square
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,26 @@ def regions(terms: list[Term], domain: Fraction, center=(0, 0), convention: str 
             raise ValueError(f"term {ti.id} has no active cell")
         result.append(p)
     return result
+
+
+def refine(numerator: list[Term], denominator: list[Term], domain: Fraction, center=(0, 0),
+           convention: str = "max") -> tuple[list[Term], list[Polygon]]:
+    """Linear pieces of the tropical rational function P ⊘ Q = P - Q.
+
+    The cells are the two-dimensional intersections of a cell of P with a cell
+    of Q, in numerator-major order. On the cell of terms (p, q) the function is
+    the affine term p - q, with id `p.id + q.id`.
+    """
+    p_cells = regions(numerator, domain, center, convention)
+    q_cells = regions(denominator, domain, center, convention)
+    terms, cells = [], []
+    for p, p_cell in zip(numerator, p_cells):
+        for q, q_cell in zip(denominator, q_cells):
+            cell = intersect(p_cell, q_cell)
+            if area(cell) > 0:
+                terms.append(Term(p.id + q.id, p.a - q.a, p.b - q.b, p.c - q.c))
+                cells.append(cell)
+    return terms, cells
 
 
 def tropical_value(terms: list[Term], p, convention: str = "max") -> Fraction:

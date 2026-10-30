@@ -20,8 +20,13 @@ const FINE_TURN_RAD = Math.PI / 1800;
 const RULES_SEEN_KEY = 'tpl:rules-seen';
 
 // Camera presets as [polar from vertical, azimuth from the front], degrees. Keys follow PrusaSlicer
-// (2, the bottom view, is omitted: the camera stays above the table).
-const VIEWS = { iso: [45, -30], top: [0, 0], front: [80, 0], rear: [80, 180], left: [80, -90], right: [80, 90] } as const;
+// (2, the bottom view, is omitted: the camera goes down to table level, never below it). The side
+// views are at table level, to compare piece heights.
+const VIEWS = { iso: [45, -30], top: [0, 0], front: [90, 0], rear: [90, 180], left: [90, -90], right: [90, 90] } as const;
+// Pieces are not dragged where the pointer ray meets the drag plane at less than about 6°: near
+// table level a pixel would move a piece by many millimetres, and at exactly 90° the ray never
+// meets the plane. Clicking still selects, and keyboard nudges still work.
+const MIN_DRAG_RAY_SLOPE = 0.1;
 type View = keyof typeof VIEWS;
 const VIEW_BUTTONS: [View, string, string][] = [
   ['iso', 'Iso', '0'], ['top', 'Top', '1'], ['front', 'Front', '3'], ['rear', 'Rear', '4'], ['left', 'Left', '5'], ['right', 'Right', '6'],
@@ -126,7 +131,7 @@ class Player {
     // onPointerDown), right- or middle-drag pans, the wheel zooms toward the cursor.
     this.controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
     this.controls.zoomToCursor = true;
-    this.controls.maxPolarAngle = THREE.MathUtils.degToRad(85);
+    this.controls.maxPolarAngle = Math.PI / 2;
     this.controls.addEventListener('change', () => (this.dirty = true));
 
     this.initSession(params);
@@ -197,7 +202,7 @@ class Player {
               <li><b>Arrows</b> nudge 1 mm (Shift: 0.1 mm). <b>Q / E</b> turn 1° (Shift: 0.1°).</li>
               <li><b>Tab</b> selects the next piece. Click the same spot again to reach a piece underneath.</li>
               <li>Camera as in PrusaSlicer: <b>left-drag</b> empty space to orbit, <b>right-</b> or <b>middle-drag</b> to pan, the <b>wheel</b> zooms.</li>
-              <li>Views: <b>0</b> iso, <b>1</b> top, <b>3</b> front, <b>4</b> rear, <b>5</b> left, <b>6</b> right, <b>Z</b> zoom to fit. <b>S</b> turns sticky edges on or off.</li>
+              <li>Views: <b>0</b> iso, <b>1</b> top, <b>3</b> front, <b>4</b> rear, <b>5</b> left, <b>6</b> right (side views at table level, to compare heights), <b>Z</b> zoom to fit. <b>S</b> turns sticky edges on or off.</li>
               <li><b>Ctrl+Z</b> undo, <b>Ctrl+Shift+Z</b> redo. Progress is saved in this browser.</li>
             </ul>
             <button data-ui="closeRules" type="button">Start</button>
@@ -333,7 +338,9 @@ class Player {
 
   private pointOnPlane(e: PointerEvent, plane: THREE.Plane): THREE.Vector3 | null {
     this.raycaster.setFromCamera(this.ndc(e), this.camera);
-    return this.raycaster.ray.intersectPlane(plane, new THREE.Vector3());
+    const ray = this.raycaster.ray;
+    if (Math.abs(ray.direction.dot(plane.normal)) < MIN_DRAG_RAY_SLOPE) return null;
+    return ray.intersectPlane(plane, new THREE.Vector3());
   }
 
   private onPointerDown = (e: PointerEvent): void => {
@@ -379,6 +386,7 @@ class Player {
     this.lastClick = { x: e.clientX, y: e.clientY, index: choice.index };
     const pose = this.session.poses[choice.index];
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -choice.point.z);
+    if (!this.pointOnPlane(e, plane)) return;
     this.drag = { kind: 'move', index: choice.index, plane, offset: new THREE.Vector2(pose.x - choice.point.x, pose.y - choice.point.y), changed: false };
     this.renderer.domElement.setPointerCapture(e.pointerId);
   };

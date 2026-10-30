@@ -63,8 +63,8 @@ export async function renderGallery(root: HTMLElement): Promise<void> {
     <div class="gallery">
       <header class="intro">
         <h1>Tropical Puzzle Lab</h1>
-        <p>Each piece is one region of a tropical polynomial: the maximum, or in some puzzles the minimum, of a few affine functions.
-        In the relief puzzles a piece's sloped top is its affine function, so a finished assembly forms one continuous roof: bowl-shaped for a maximum, rising to ridges for a minimum.
+        <p>Each piece is one region of a tropical polynomial: the maximum, or in some puzzles the minimum, of a few affine functions. In a rational puzzle it is a region of the difference of two such.
+        In the relief puzzles a piece's sloped top is its affine function, so a finished assembly forms one continuous roof: bowl-shaped for a maximum, rising to ridges for a minimum, with both valleys and ridges for a difference.
         Fill the square tray with every piece. Pieces can be moved and turned, but not flipped, and nothing snaps into place.</p>
         <p>Every puzzle can be played in relief or flat, with the heights removed. Choose a mode on the card or switch inside the puzzle; each mode keeps its own progress.</p>
       </header>

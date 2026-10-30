@@ -15,6 +15,7 @@ python -m venv .venv && .venv/Scripts/python -m pip install -e "generator[test]"
 cd generator && ../.venv/Scripts/python -m pytest                      # all tests
 ../.venv/Scripts/python -m pytest tests/test_rev2.py::test_polygons_match_source
 ../.venv/Scripts/tpl-export          # regenerate puzzles/*/puzzle.json and puzzles/index.json
+../.venv/Scripts/tpl-stl new2        # printable STLs into print/new2/ (gitignored)
 ```
 
 Web (`cd web`; Node 22):
