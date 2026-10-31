@@ -164,6 +164,36 @@
       }
     },
     {
+      "id": "rat2",
+      "construction": "rat2",
+      "revision": 1,
+      "name": "20 rational",
+      "description": "Twenty pieces whose roofs form peaks, pits and saddles. Fill the square tray so the roof forms one continuous surface.",
+      "variant": "relief",
+      "pieceCount": 20,
+      "path": "rat2/puzzle.json",
+      "difficulty": {
+        "diversity": 5.709562,
+        "x": 0.247872,
+        "rating": 4
+      }
+    },
+    {
+      "id": "rat2-flat",
+      "construction": "rat2",
+      "revision": 1,
+      "name": "20 rational (flat)",
+      "description": "The 20 rational footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "variant": "tiling",
+      "pieceCount": 20,
+      "path": "rat2-flat/puzzle.json",
+      "difficulty": {
+        "diversity": 6.063062,
+        "x": 0.266477,
+        "rating": 4
+      }
+    },
+    {
       "id": "rev2",
       "construction": "rev2",
       "revision": 1,

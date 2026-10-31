@@ -5,7 +5,7 @@ import { matchingWalls, WALL_MATCH_STOPS_MM, wallHeights } from '../src/geometry
 import type { Puzzle, Vec2 } from '../src/types';
 
 const load = (id: string): Puzzle => JSON.parse(readFileSync(new URL(`../../puzzles/${id}/puzzle.json`, import.meta.url), 'utf-8'));
-const RELIEF = ['new1', 'new2', 'new3', 'new4', 'rat1', 'rev2'].map(load);
+const RELIEF = ['new1', 'new2', 'new3', 'new4', 'rat1', 'rat2', 'rev2'].map(load);
 const close = (p: Vec2, q: Vec2) => Math.hypot(p[0] - q[0], p[1] - q[1]) < 1e-6;
 
 /** Pairs of walls that coincide in the reference assembly. Only tests may look at `reference`. */
