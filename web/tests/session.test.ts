@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { scramble } from '../src/geometry/scramble';
-import { type KeyValueStore, loadSession, newSession, pushUndo, redo, report, saveSession, storageKey, undo } from '../src/sessions/session';
+import { type KeyValueStore, loadSession, newSession, pushUndo, recordWallMatch, redo, report, saveSession, storageKey, undo } from '../src/sessions/session';
 import type { Puzzle } from '../src/types';
 
 const rev2: Puzzle = JSON.parse(readFileSync(new URL('../../puzzles/rev2/puzzle.json', import.meta.url), 'utf-8'));
@@ -46,6 +46,33 @@ describe('sessions', () => {
     expect(report(rev2, loaded.session, false)).toContain('assist=none');
     loaded.session.snaps = 3;
     expect(report(rev2, loaded.session, false)).toContain('assist=sticky-edges(3)');
+  });
+
+  it('loads sessions saved before wall match existed, and reports its use', () => {
+    const store = memoryStore();
+    const { wallMatch: _w, wallMatchMm: _m, wallMatches: _c, wallMatchTightestMm: _t, ...old } = newSession(rev2, 7, scramble(rev2, 7));
+    store.setItem(storageKey(rev2.id), JSON.stringify(old));
+    const loaded = loadSession(rev2, store);
+    expect(loaded.status).toBe('ok');
+    if (loaded.status !== 'ok') return;
+    const s = loaded.session;
+    expect([s.wallMatch, s.wallMatchMm, s.wallMatches, s.wallMatchTightestMm]).toEqual([false, 2, 0, null]);
+    expect(report(rev2, s, false)).toContain('assist=none');
+    recordWallMatch(s);
+    s.wallMatchMm = 0.25;
+    recordWallMatch(s);
+    s.wallMatchMm = 5;
+    recordWallMatch(s);
+    expect(report(rev2, s, false)).toContain('assist=wall-match(3@0.25mm)');
+    s.snaps = 2;
+    expect(report(rev2, s, false)).toContain('assist=sticky-edges(2)+wall-match(3@0.25mm)');
+  });
+
+  it('replaces an unknown wall-match tolerance with the default', () => {
+    const store = memoryStore();
+    store.setItem(storageKey(rev2.id), JSON.stringify({ ...newSession(rev2, 7, scramble(rev2, 7)), wallMatchMm: 1.7 }));
+    const loaded = loadSession(rev2, store);
+    expect(loaded.status === 'ok' && loaded.session.wallMatchMm).toBe(2);
   });
 
   it('rejects a session saved for different geometry', () => {

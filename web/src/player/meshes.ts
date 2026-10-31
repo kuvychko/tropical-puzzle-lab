@@ -34,6 +34,32 @@ export function pieceGeometry(piece: PieceDef): THREE.BufferGeometry {
   return geometry;
 }
 
+/** The wall a raycast face belongs to, or null for the roof and underside (see the order in pieceGeometry). */
+export function wallAtFace(piece: PieceDef, faceIndex: number): number | null {
+  const wallFace = faceIndex - 2 * (piece.polygon.length - 2);
+  return wallFace < 0 ? null : Math.floor(wallFace / 2);
+}
+
+/** A coloured quad just outside one wall. Add it to the piece's group so it follows the piece. */
+export function makeWallOverlay(piece: PieceDef, wall: number, color: number): THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial> {
+  const OFFSET_MM = 0.15;
+  const [au, av] = piece.polygon[wall];
+  const [bu, bv] = piece.polygon[(wall + 1) % piece.polygon.length];
+  const length = Math.hypot(bu - au, bv - av);
+  // The polygon is counter-clockwise, so outward is to the right of the wall's direction.
+  const ou = ((bv - av) / length) * OFFSET_MM;
+  const ov = (-(bu - au) / length) * OFFSET_MM;
+  const corners = [
+    [au + ou, av + ov, 0],
+    [bu + ou, bv + ov, 0],
+    [bu + ou, bv + ov, topHeight(piece, bu, bv)],
+    [au + ou, av + ov, topHeight(piece, au, av)],
+  ];
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 1, 2, 0, 2, 3].flatMap((k) => corners[k]), 3));
+  return new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+}
+
 export interface PieceObject {
   group: THREE.Group;
   mesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
@@ -65,14 +91,15 @@ export interface Palette {
   overlap: number;
   edge: number;
   selected: number;
+  match: number;
   target: number;
   ghost: number;
 }
 
 export function palette(dark: boolean): Palette {
   return dark
-    ? { background: 0x161b1f, table: 0x1e2529, floor: 0x2c353b, tray: 0x3a4650, piece: 0xc9c2b2, overlap: 0xe0565b, edge: 0x2b3135, selected: 0x6aa7ff, target: 0x8fb8bb, ghost: 0xe7c46a }
-    : { background: 0xf4f2ed, table: 0xe9e5dc, floor: 0xfaf8f3, tray: 0x56636d, piece: 0xd8d1c1, overlap: 0xe0565b, edge: 0x4a5257, selected: 0x1f6feb, target: 0x3f7f84, ghost: 0xb8860b };
+    ? { background: 0x161b1f, table: 0x1e2529, floor: 0x2c353b, tray: 0x3a4650, piece: 0xc9c2b2, overlap: 0xe0565b, edge: 0x2b3135, selected: 0x6aa7ff, match: 0x4cc38a, target: 0x8fb8bb, ghost: 0xe7c46a }
+    : { background: 0xf4f2ed, table: 0xe9e5dc, floor: 0xfaf8f3, tray: 0x56636d, piece: 0xd8d1c1, overlap: 0xe0565b, edge: 0x4a5257, selected: 0x1f6feb, match: 0x1f9d63, target: 0x3f7f84, ghost: 0xb8860b };
 }
 
 /** Square tray: floor, low walls outside the target, and the always-visible target outline. */
