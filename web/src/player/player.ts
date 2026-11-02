@@ -5,14 +5,19 @@ import { evaluate, type Evaluation } from '../geometry/evaluate';
 import { bounds, transform } from '../geometry/polygon';
 import { randomSeed, scramble } from '../geometry/scramble';
 import { snapPose } from '../geometry/snap';
+import { matchingWalls, WALL_MATCH_STOPS_MM, type WallRef } from '../geometry/walls';
 import {
-  browserStore, formatTime, loadSession, newSession, pushUndo, redo, report, saveSession, type Session, undo,
+  browserStore, formatTime, loadSession, newSession, pushUndo, recordWallMatch, redo, report, saveSession, type Session, undo,
 } from '../sessions/session';
 import { fetchIndex, showDifficulty } from '../difficulty/rating';
 import { constructions, modeSwitchHtml } from '../gallery/modes';
 import type { Pose, Puzzle } from '../types';
-import { handleRadius, makeGhost, makePiece, makeRotateHandle, makeTray, palette, placeObject, type PieceObject } from './meshes';
+import {
+  handleRadius, makeGhost, makePiece, makeRotateHandle, makeTray, makeWallOverlay, palette, placeObject, wallAtFace, type PieceObject,
+} from './meshes';
 
+// A press that moves less than this is a click, not a drag or an orbit.
+const CLICK_SLOP_PX = 4;
 const NUDGE_MM = 1;
 const FINE_NUDGE_MM = 0.1;
 const TURN_RAD = Math.PI / 180;
@@ -92,6 +97,10 @@ class Player {
   private drag: Drag | null = null;
   private lastClick: { x: number; y: number; index: number } | null = null;
   private emptyPress: { x: number; y: number } | null = null;
+  private wallPress: (WallRef & { x: number; y: number }) | null = null;
+  private activeWall: WallRef | null = null;
+  private wallCandidates: WallRef[] = [];
+  private wallOverlays: { parent: THREE.Group; mesh: ReturnType<typeof makeWallOverlay> }[] = [];
   private burstTimer: number | undefined;
   private dirty = true;
   private wasSolved = false;
@@ -177,6 +186,15 @@ class Player {
           <label class="toggle" title="When you release a piece, align it flush with a nearby tray wall or piece edge (S). Recorded in the report.">
             <input data-ui="sticky" type="checkbox" /> Sticky edges
           </label>
+          ${relief ? `<label class="toggle" title="Click a piece's side wall to highlight pieces whose wall heights agree with it (M). Recorded in the report.">
+            <input data-ui="wallMatch" type="checkbox" /> Wall match
+          </label>
+          <div class="wall-match" data-ui="wallMatchControls" hidden>
+            <label>Height tolerance: <b data-ui="wallMatchTol"></b>
+              <input data-ui="wallMatchSlider" type="range" min="0" max="${WALL_MATCH_STOPS_MM.length - 1}" step="1" />
+            </label>
+            <span class="result" data-ui="wallMatchResult"></span>
+          </div>` : ''}
           <dl class="facts">
             <dt>Puzzle</dt><dd>${escapeHtml(p.id)} · rev ${p.revision}</dd>
             <dt>Seed</dt><dd data-ui="seed"></dd>
@@ -195,6 +213,7 @@ class Player {
               <li>Pieces may pass through each other while you work. Overlapping pieces turn red.</li>
               <li>Any assembly that fills the tray within tolerance counts, not only the reference one.</li>
               <li>Optional <b>sticky edges</b> (off by default): a released piece aligns flush with a tray wall or piece edge it is already next to. It never pulls pieces toward the solution, and its use is noted in the report.</li>
+              ${relief ? '<li>Optional <b>wall match</b> (off by default): click a side wall to highlight walls of other pieces with the same heights at both ends. A tighter tolerance is a stronger hint. Nothing moves, and its use and tightest tolerance are noted in the report.</li>' : ''}
             </ul>
             <h3>Controls</h3>
             <ul class="keys">
@@ -202,7 +221,7 @@ class Player {
               <li><b>Arrows</b> nudge 1 mm (Shift: 0.1 mm). <b>Q / E</b> turn 1° (Shift: 0.1°).</li>
               <li><b>Tab</b> selects the next piece. Click the same spot again to reach a piece underneath.</li>
               <li>Camera as in PrusaSlicer: <b>left-drag</b> empty space to orbit, <b>right-</b> or <b>middle-drag</b> to pan, the <b>wheel</b> zooms.</li>
-              <li>Views: <b>0</b> iso, <b>1</b> top, <b>3</b> front, <b>4</b> rear, <b>5</b> left, <b>6</b> right (side views at table level, to compare heights), <b>Z</b> zoom to fit. <b>S</b> turns sticky edges on or off.</li>
+              <li>Views: <b>0</b> iso, <b>1</b> top, <b>3</b> front, <b>4</b> rear, <b>5</b> left, <b>6</b> right (side views at table level, to compare heights), <b>Z</b> zoom to fit. <b>S</b> turns sticky edges on or off.${relief ? ' <b>M</b> turns wall match on or off.' : ''}</li>
               <li><b>Ctrl+Z</b> undo, <b>Ctrl+Shift+Z</b> redo. Progress is saved in this browser.</li>
             </ul>
             <button data-ui="closeRules" type="button">Start</button>
@@ -243,7 +262,11 @@ class Player {
   }
 
   private start(seed: number): void {
-    this.session = newSession(this.puzzle, seed, scramble(this.puzzle, seed), this.session.revealed, this.session.stickyEdges);
+    this.session = newSession(
+      this.puzzle, seed, scramble(this.puzzle, seed), this.session.revealed, this.session.stickyEdges,
+      this.session.wallMatch, this.session.wallMatchMm,
+    );
+    this.clearWall();
     this.select(null);
     this.afterPosesChanged();
     this.wasSolved = this.evaluation.solved;
@@ -275,13 +298,90 @@ class Player {
 
   private select(index: number | null): void {
     this.selected = index;
-    this.pieces.forEach((p, i) => {
-      p.edges.material.color.setHex(i === index ? this.colors.selected : this.colors.edge);
-      p.mesh.material.emissive.setHex(i === index ? this.colors.selected : 0x000000);
-      p.mesh.material.emissiveIntensity = i === index ? 0.12 : 0;
-    });
+    this.updateHighlights();
     this.updateHandle();
+  }
+
+  /** Selection and wall-match tints. These use the emissive channel, so overlap red still shows. */
+  private updateHighlights(): void {
+    const { selected, match, edge } = this.colors;
+    this.pieces.forEach((p, i) => {
+      const isSelected = i === this.selected;
+      const isCandidate = this.wallCandidates.some((c) => c.piece === i);
+      p.edges.material.color.setHex(isSelected ? selected : isCandidate ? match : edge);
+      p.mesh.material.emissive.setHex(isSelected ? selected : isCandidate ? match : 0x000000);
+      p.mesh.material.emissiveIntensity = isSelected ? 0.12 : isCandidate ? 0.35 : 0;
+    });
     this.dirty = true;
+  }
+
+  // ---- wall match ----------------------------------------------------------
+
+  private get wallMatchOn(): boolean {
+    return this.puzzle.variant === 'relief' && this.session.wallMatch;
+  }
+
+  private removeWallOverlays(): void {
+    for (const { parent, mesh } of this.wallOverlays) {
+      parent.remove(mesh);
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+    }
+    this.wallOverlays = [];
+  }
+
+  private addWallOverlay({ piece, wall }: WallRef, color: number): void {
+    const parent = this.pieces[piece].group;
+    const mesh = makeWallOverlay(this.puzzle.pieces[piece], wall, color);
+    parent.add(mesh);
+    this.wallOverlays.push({ parent, mesh });
+  }
+
+  /** Look up the active wall at the current tolerance and show the result. Each call is one recorded query. */
+  private queryWall(): void {
+    const active = this.activeWall;
+    if (!active) return;
+    this.wallCandidates = matchingWalls(this.puzzle, active.piece, active.wall, this.session.wallMatchMm);
+    this.removeWallOverlays();
+    this.addWallOverlay(active, this.colors.selected);
+    this.wallCandidates.forEach((c) => this.addWallOverlay(c, this.colors.match));
+    recordWallMatch(this.session);
+    this.save();
+    this.updateHighlights();
+    this.updateHud();
+  }
+
+  private clearWall(): void {
+    this.activeWall = null;
+    this.wallCandidates = [];
+    this.removeWallOverlays();
+    this.updateHighlights();
+    this.updateHud();
+  }
+
+  private toggleWall(ref: WallRef): void {
+    const active = this.activeWall;
+    if (active && active.piece === ref.piece && active.wall === ref.wall) {
+      this.clearWall();
+      return;
+    }
+    this.activeWall = { piece: ref.piece, wall: ref.wall };
+    this.queryWall();
+  }
+
+  private setWallMatch(on: boolean): void {
+    this.session.wallMatch = on;
+    this.clearWall();
+    this.save();
+  }
+
+  private setWallMatchTolerance(mm: number): void {
+    this.session.wallMatchMm = mm;
+    if (this.activeWall) this.queryWall();
+    else {
+      this.save();
+      this.updateHud();
+    }
   }
 
   private updateHandle(): void {
@@ -329,6 +429,16 @@ class Player {
       this.setSticky(sticky.checked);
       sticky.blur(); // keep keyboard shortcuts working
     });
+    if (this.puzzle.variant === 'relief') {
+      const wallMatch = this.ui.wallMatch as HTMLInputElement;
+      wallMatch.addEventListener('change', () => {
+        this.setWallMatch(wallMatch.checked);
+        wallMatch.blur();
+      });
+      const slider = this.ui.wallMatchSlider as HTMLInputElement;
+      slider.addEventListener('input', () => this.setWallMatchTolerance(WALL_MATCH_STOPS_MM[Number(slider.value)]));
+      slider.addEventListener('change', () => slider.blur());
+    }
   }
 
   private ndc(e: PointerEvent): THREE.Vector2 {
@@ -346,6 +456,7 @@ class Player {
   private onPointerDown = (e: PointerEvent): void => {
     this.controls.enabled = true;
     this.emptyPress = null;
+    this.wallPress = null;
     if (e.button !== 0) return;
     this.endBurst();
     this.raycaster.setFromCamera(this.ndc(e), this.camera);
@@ -363,10 +474,10 @@ class Player {
     }
 
     const hits = this.raycaster.intersectObjects(this.pieces.map((p) => p.mesh));
-    const order: { index: number; point: THREE.Vector3 }[] = [];
+    const order: { index: number; point: THREE.Vector3; wall: number | null }[] = [];
     for (const h of hits) {
       const index = h.object.userData.index as number;
-      if (!order.some((o) => o.index === index)) order.push({ index, point: h.point });
+      if (!order.some((o) => o.index === index)) order.push({ index, point: h.point, wall: wallAtFace(this.puzzle.pieces[index], h.faceIndex!) });
     }
     if (!order.length) {
       // Empty space: OrbitControls orbits. A click without dragging deselects (on release).
@@ -378,12 +489,16 @@ class Player {
     // Clicking the same spot again reaches the next piece underneath.
     let choice = order[0];
     const last = this.lastClick;
-    if (last && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 4) {
+    // Clicking the active wall again clears it, rather than reaching for a piece behind it.
+    const onActiveWall = this.activeWall?.piece === order[0].index && this.activeWall.wall === order[0].wall;
+    if (!onActiveWall && last && Math.hypot(e.clientX - last.x, e.clientY - last.y) < CLICK_SLOP_PX) {
       const k = order.findIndex((o) => o.index === last.index);
       if (k >= 0) choice = order[(k + 1) % order.length];
     }
     this.select(choice.index);
     this.lastClick = { x: e.clientX, y: e.clientY, index: choice.index };
+    // Recorded before the drag plane check: table-level views can't drag, but show walls best.
+    if (this.wallMatchOn && choice.wall != null) this.wallPress = { x: e.clientX, y: e.clientY, piece: choice.index, wall: choice.wall };
     const pose = this.session.poses[choice.index];
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -choice.point.z);
     if (!this.pointOnPlane(e, plane)) return;
@@ -396,6 +511,11 @@ class Player {
     if (!drag) {
       this.updateCursor(e);
       return;
+    }
+    // A little jitter while clicking a wall must not move the piece.
+    if (this.wallPress) {
+      if (Math.hypot(e.clientX - this.wallPress.x, e.clientY - this.wallPress.y) < CLICK_SLOP_PX) return;
+      this.wallPress = null;
     }
     const p = this.pointOnPlane(e, drag.plane);
     if (!p) return;
@@ -418,7 +538,13 @@ class Player {
     this.controls.enabled = true;
     const press = this.emptyPress;
     this.emptyPress = null;
-    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 4) this.select(null);
+    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) < CLICK_SLOP_PX) {
+      this.select(null);
+      this.clearWall();
+    }
+    const wall = this.wallPress;
+    this.wallPress = null;
+    if (wall && e.type === 'pointerup' && Math.hypot(e.clientX - wall.x, e.clientY - wall.y) < CLICK_SLOP_PX) this.toggleWall(wall);
     if (!this.drag) return;
     if (this.drag.changed) {
       if (this.session.stickyEdges) this.applySticky(this.drag.index);
@@ -467,13 +593,17 @@ class Player {
     if (mod || e.altKey) return;
     if (key === 'escape') {
       if (!this.ui.rules.hidden) this.toggleRules(false);
-      else this.select(null);
+      else {
+        this.select(null);
+        this.clearWall();
+      }
       return;
     }
     const view = VIEW_BUTTONS.find(([, , k]) => k === key);
     if (view) return this.setView(view[0]);
     if (key === 'z') return this.fitView();
     if (key === 's') return this.setSticky(!this.session.stickyEdges);
+    if (key === 'm' && this.puzzle.variant === 'relief') return this.setWallMatch(!this.session.wallMatch);
     if (key === 'tab') {
       e.preventDefault();
       const n = this.pieces.length;
@@ -562,7 +692,7 @@ class Player {
     let status: string;
     let cls = '';
     if (e.solved) {
-      const notes = [s.revealed && 'solution was shown', s.snaps && 'sticky edges'].filter(Boolean);
+      const notes = [s.revealed && 'solution was shown', s.snaps && 'sticky edges', s.wallMatches && 'wall match'].filter(Boolean);
       status = `Solved in ${formatTime(s.elapsedMs)}${notes.length ? ` (${notes.join(', ')})` : ''}`;
       cls = 'solved';
     } else if (red) {
@@ -583,6 +713,19 @@ class Player {
     (this.ui.redo as HTMLButtonElement).disabled = !s.redo.length;
     this.ui.reveal.textContent = this.ghost.visible ? 'Hide solution' : 'Show solution';
     (this.ui.sticky as HTMLInputElement).checked = s.stickyEdges;
+    if (this.puzzle.variant === 'relief') this.updateWallMatchHud();
+  }
+
+  private updateWallMatchHud(): void {
+    const s = this.session;
+    (this.ui.wallMatch as HTMLInputElement).checked = s.wallMatch;
+    this.ui.wallMatchControls.hidden = !s.wallMatch;
+    (this.ui.wallMatchSlider as HTMLInputElement).value = String((WALL_MATCH_STOPS_MM as readonly number[]).indexOf(s.wallMatchMm));
+    this.ui.wallMatchTol.textContent = `±${s.wallMatchMm} mm`;
+    const pieces = new Set(this.wallCandidates.map((c) => c.piece)).size;
+    this.ui.wallMatchResult.textContent = !this.activeWall
+      ? 'Click a side wall of a piece.'
+      : pieces === 0 ? 'No piece fits this wall.' : pieces === 1 ? '1 piece could fit this wall.' : `${pieces} pieces could fit this wall.`;
   }
 
   private toggleReveal(): void {
@@ -651,6 +794,7 @@ class Player {
       },
       evaluate: () => this.evaluation,
       session: () => this.session,
+      wallMatch: () => ({ active: this.activeWall, candidates: this.wallCandidates }),
     };
   }
 }

@@ -6,10 +6,11 @@ These are the play rules agreed in [project.md](project.md), as the player imple
 | --- | --- |
 | Motion | Pieces can be translated in the plane and rotated about the vertical axis, continuously. |
 | Flipping | Not allowed. Each piece keeps its flat underside down. |
-| Appearance | All pieces look the same. A temporary outline marks the selected piece. |
+| Appearance | All pieces look the same. A temporary outline marks the selected piece, and the optional wall match assist tints its candidates. |
 | Target | The square tray outline is always visible. |
 | Snapping | Never toward the solution: no attraction to a piece's correct position or orientation, and no angle quantisation, including for keyboard nudges and turns. |
 | Sticky edges | Optional assist, off by default (see below). |
+| Wall match | Optional assist for relief puzzles, off by default (see below). |
 | Collision | Pieces may pass through each other while being moved. |
 | Overlap feedback | A pair of pieces turns red while it overlaps by more than the depth tolerance. |
 | Contact | Boundary contact alone is not overlap. |
@@ -49,6 +50,27 @@ It does not use the reference solution. It can make a piece flush against a wron
 Keyboard nudges are never snapped, so fine adjustment always stays possible.
 
 Each snap that moves a piece is counted in the session. The report line shows `assist=sticky-edges(N)`, or `assist=none` if it never moved a piece. The toggle is off by default so that unassisted attempts stay comparable.
+
+## Wall match (optional assist)
+
+With a printed puzzle you can hold two pieces together and see whether their side walls agree. Wall match gives the browser the same cue. It is available on relief puzzles only, because the walls of a tiling piece all have the same height.
+
+When it is on (checkbox in the panel, or **M**), clicking a piece's side wall without dragging marks that wall. Every piece with a compatible wall is tinted and that wall is marked. Walls can't be clicked from the top view, so use a tilted or side view.
+
+Two walls are compatible when their top edges agree at both ends, within the tolerance, with the start of one meeting the end of the other. Length is ignored. Turning a piece doesn't change the result.
+
+It never moves a piece and doesn't use piece positions or the reference solution. A candidate may be a false match, and a wall on the tray edge may also show candidates.
+
+The slider sets the tolerance, from ±5 mm to ±0.25 mm, with a default of ±2 mm. Tighter is a much stronger hint. On the 16-piece `new2`:
+
+| Tolerance | Mean candidate pieces per interior wall | Walls with one candidate |
+| --- | --- | --- |
+| ±5 mm | 7.5 | 0% |
+| ±2 mm | 3.5 | 6% |
+| ±1 mm | 1.6 | 51% |
+| ±0.25 mm | 1.03 | 96% |
+
+Each wall clicked, and each slider change while a wall is marked, counts as one query. The report line shows `assist=wall-match(N@Tmm)`, where T is the tightest tolerance used, joined with `+` if sticky edges also moved a piece.
 
 ## Completion tolerances
 

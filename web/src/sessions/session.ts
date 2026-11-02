@@ -1,6 +1,7 @@
 // Browser-local sessions: poses, history, seed and timer for one puzzle.
 import type { Pose, Puzzle } from '../types';
 import { SCRAMBLE_VERSION } from '../geometry/scramble';
+import { DEFAULT_WALL_MATCH_MM, WALL_MATCH_STOPS_MM } from '../geometry/walls';
 
 export const SESSION_VERSION = 1;
 const HISTORY_LIMIT = 200;
@@ -19,6 +20,11 @@ export interface Session {
   /** Optional sticky-edges assist (off by default) and how many times it moved a piece. */
   stickyEdges: boolean;
   snaps: number;
+  /** Optional wall-match assist (off by default): current tolerance, queries made and the tightest tolerance used. */
+  wallMatch: boolean;
+  wallMatchMm: number;
+  wallMatches: number;
+  wallMatchTightestMm: number | null;
   elapsedMs: number;
   solvedAt: string | null;
 }
@@ -38,7 +44,10 @@ export function browserStore(): KeyValueStore | null {
   }
 }
 
-export function newSession(puzzle: Puzzle, seed: number, poses: Pose[], revealed = false, stickyEdges = false): Session {
+export function newSession(
+  puzzle: Puzzle, seed: number, poses: Pose[], revealed = false, stickyEdges = false,
+  wallMatch = false, wallMatchMm: number = DEFAULT_WALL_MATCH_MM,
+): Session {
   return {
     version: SESSION_VERSION,
     puzzleId: puzzle.id,
@@ -52,6 +61,10 @@ export function newSession(puzzle: Puzzle, seed: number, poses: Pose[], revealed
     revealed,
     stickyEdges,
     snaps: 0,
+    wallMatch,
+    wallMatchMm,
+    wallMatches: 0,
+    wallMatchTightestMm: null,
     elapsedMs: 0,
     solvedAt: null,
   };
@@ -97,6 +110,10 @@ export function loadSession(puzzle: Puzzle, store: KeyValueStore | null): LoadRe
   // Fields added after the first release default to "assist not used".
   s.stickyEdges = s.stickyEdges === true;
   s.snaps = Number.isInteger(s.snaps) && s.snaps > 0 ? s.snaps : 0;
+  s.wallMatch = s.wallMatch === true;
+  s.wallMatchMm = (WALL_MATCH_STOPS_MM as readonly number[]).includes(s.wallMatchMm) ? s.wallMatchMm : DEFAULT_WALL_MATCH_MM;
+  s.wallMatches = Number.isInteger(s.wallMatches) && s.wallMatches > 0 ? s.wallMatches : 0;
+  s.wallMatchTightestMm = Number.isFinite(s.wallMatchTightestMm) ? s.wallMatchTightestMm : null;
   s.undo = s.undo.filter((p) => validPoses(p, puzzle));
   s.redo = s.redo.filter((p) => validPoses(p, puzzle));
   return { status: 'ok', session: s };
@@ -144,6 +161,19 @@ export function redo(session: Session): boolean {
   return true;
 }
 
+/** Count one wall-match query at the session's current tolerance. */
+export function recordWallMatch(session: Session): void {
+  session.wallMatches++;
+  session.wallMatchTightestMm = Math.min(session.wallMatchTightestMm ?? Infinity, session.wallMatchMm);
+}
+
+function assists(session: Session): string {
+  const used = [];
+  if (session.snaps) used.push(`sticky-edges(${session.snaps})`);
+  if (session.wallMatches) used.push(`wall-match(${session.wallMatches}@${session.wallMatchTightestMm ?? session.wallMatchMm}mm)`);
+  return used.join('+') || 'none';
+}
+
 export function formatTime(ms: number): string {
   const total = Math.floor(ms / 1000);
   const m = Math.floor(total / 60);
@@ -161,7 +191,7 @@ export function report(puzzle: Puzzle, session: Session, solved: boolean): strin
     `solved=${solved ? 'yes' : 'no'}`,
     `time=${formatTime(session.elapsedMs)}`,
     `revealed=${session.revealed ? 'yes' : 'no'}`,
-    `assist=${session.snaps ? `sticky-edges(${session.snaps})` : 'none'}`,
+    `assist=${assists(session)}`,
     `geometry=${puzzle.geometryHash.slice(0, 12)}`,
   ].join(' ');
 }

@@ -1,3 +1,4 @@
+import math
 from fractions import Fraction
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from tropical_puzzle_lab.geometry import area, centroid
 from tropical_puzzle_lab.tropical import Term, refine, regions, tropical_value
 
 PUZZLES = Path(__file__).resolve().parents[2] / "puzzles"
-RECIPES = ["rat1"]
+RECIPES = ["rat1", "rat2"]
 
 
 @pytest.fixture(scope="module", params=RECIPES)
@@ -76,6 +77,25 @@ def test_refine_with_one_denominator_term_is_the_polynomial():
 
 def test_cells_tile_the_domain(construction):
     assert sum(area(cell) for cell in construction.cells) == (2 * construction.domain) ** 2
+
+
+def test_rat2_meets_its_print_limits():
+    c = Construction(load_recipe(PUZZLES / "rat2" / "recipe.json"))
+    tray = float(2 * c.domain * c.xy) ** 2
+    polygons = [[(float(x), float(y)) for x, y in piece] for piece in c.pieces]
+    assert 20 <= len(polygons) <= 24
+    areas = [float(area(piece)) / tray for piece in c.pieces]
+    assert min(areas) >= 0.012 and max(areas) <= 0.15
+    for poly in polygons:
+        n = len(poly)
+        for k in range(n):
+            a, b, d = poly[k - 1], poly[k], poly[(k + 1) % n]
+            assert math.dist(b, d) >= 6
+            u, v = (a[0] - b[0], a[1] - b[1]), (d[0] - b[0], d[1] - b[1])
+            angle = math.atan2(abs(u[0] * v[1] - u[1] * v[0]), u[0] * v[0] + u[1] * v[1])
+            assert math.degrees(angle) >= 20
+    tilts = [math.degrees(math.atan(float(c.roof.scale) * math.hypot(t.a, t.b) / float(c.xy))) for t in c.terms]
+    assert max(tilts) <= 30
 
 
 def test_committed_puzzles_are_current(recipe, construction):

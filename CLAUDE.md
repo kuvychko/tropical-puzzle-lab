@@ -69,6 +69,10 @@ There are three concerns, connected only by JSON:
   - It runs only when a drag or turn is released, and only aligns flush with edges already adjacent to the piece (tray walls from the inside, other pieces).
   - It must never consult `reference`.
   - Every snap that moves a piece increments `session.snaps`, which the report line shows as `assist=…`.
+- **Wall match is opt-in and never moves anything.**
+  - `src/geometry/walls.ts`, off by default, toggled with **M**, relief variants only.
+  - It compares piece shapes only: it must never consult `reference` or poses.
+  - Every query increments `session.wallMatches` and updates `session.wallMatchTightestMm`, which the report line shows as `assist=…`.
 - **The reference assembly is never shown** at load or in thumbnails. "Show solution" sets `session.revealed`, which is sticky and goes into the report.
 - **The scramble algorithm is versioned.** Changing `scramble.ts` changes every seed's layout, so give it a new version name. Changing geometry changes `geometryHash`, which makes saved sessions incompatible; that is intended.
 - **rev2 uses the ideal polygons** (no 0.15 mm print inset). Heights are measured from the piece underside, while the source adds a 3 mm tray floor. Tolerances in `recipe.json` are first guesses, documented as experimental.

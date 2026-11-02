@@ -1,0 +1,72 @@
+{
+  "formatVersion": 1,
+  "family": "tropical-rational",
+  "convention": "max",
+  "id": "rat2",
+  "revision": 1,
+  "pieceCount": 20,
+  "domain": "4",
+  "xyMmPerUnit": "18",
+  "minThicknessMm": "8",
+  "reliefMm": "35",
+  "trayRimMm": "7",
+  "numerator": [
+    { "id": "A", "a": 0, "b": 1, "c": "27/20" },
+    { "id": "B", "a": 0, "b": 4, "c": "-21/5" },
+    { "id": "C", "a": 3, "b": 0, "c": "71/20" },
+    { "id": "D", "a": 1, "b": 0, "c": "47/20" },
+    { "id": "E", "a": 4, "b": 0, "c": "13/10" },
+    { "id": "F", "a": 0, "b": 3, "c": "-31/20" },
+    { "id": "G", "a": 2, "b": 2, "c": "33/10" }
+  ],
+  "denominator": [
+    { "id": "a", "a": 4, "b": 1, "c": "-21/10" },
+    { "id": "b", "a": 2, "b": 2, "c": "37/10" },
+    { "id": "c", "a": 1, "b": 1, "c": "47/10" },
+    { "id": "d", "a": 0, "b": 0, "c": "9/5" },
+    { "id": "e", "a": 3, "b": 4, "c": "-21/20" },
+    { "id": "f", "a": 2, "b": 1, "c": "16/5" },
+    { "id": "g", "a": 0, "b": 2, "c": "27/10" }
+  ],
+  "variants": [
+    {
+      "id": "rat2",
+      "variant": "relief",
+      "name": "20 rational",
+      "description": "Twenty pieces whose roofs form peaks, pits and saddles. Fill the square tray so the roof forms one continuous surface.",
+      "notes": [
+        "Tropical rational function P ⊘ Q = P − Q (max convention) over x, y in [-4, 4]; each piece is a cell of the common refinement of P and Q.",
+        "Found by generator/scripts/search_rational.py --climb --seed 8 --restarts 6 --evals 2500 (restart 0).",
+        "Exploratory puzzle under evaluation."
+      ]
+    },
+    {
+      "id": "rat2-flat",
+      "variant": "tiling",
+      "name": "20 rational (flat)",
+      "description": "The 20 rational footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "flatThicknessMm": "12",
+      "notes": [
+        "Tropical rational function P ⊘ Q = P − Q (max convention) over x, y in [-4, 4]; each piece is a cell of the common refinement of P and Q.",
+        "Roof relief removed: every piece has the same uniform thickness."
+      ]
+    }
+  ],
+  "validation": {
+    "contactNoise": 1e-06,
+    "overlapDepth": 0.006,
+    "outsideDepth": 0.006,
+    "areaError": 0.012,
+    "roofMismatch": 0.05,
+    "edgeAngleDeg": 3,
+    "edgeMinOverlap": 0.02
+  },
+  "scramble": {
+    "algorithm": "v1",
+    "defaultSeed": 20261031
+  },
+  "source": {
+    "rational": "Max[27/20+y,-21/5+4 y,71/20+3 x,47/20+x,13/10+4 x,-31/20+3 y,33/10+2 x+2 y] - Max[-21/10+4 x+y,37/10+2 x+2 y,47/10+x+y,9/5,-21/20+3 x+4 y,16/5+2 x+y,27/10+2 y]",
+    "search": "generator/scripts/search_rational.py --climb --seed 8 --restarts 6 --evals 2500, restart 0"
+  }
+}
