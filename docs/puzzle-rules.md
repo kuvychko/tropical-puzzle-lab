@@ -12,7 +12,7 @@ These are the play rules agreed in [project.md](project.md), as the player imple
 | Sticky edges | Optional assist, off by default (see below). |
 | Wall match | Optional assist for relief puzzles, off by default (see below). |
 | Collision | Pieces may pass through each other while being moved. |
-| Overlap feedback | A pair of pieces turns red while it overlaps by more than the depth tolerance. |
+| Overlap feedback | A pair of pieces turns red while it overlaps by more than the depth tolerance. A piece that is partly in the tray turns red while it sticks out through a wall by more than the outside tolerance. Pieces parked entirely outside the tray stay their normal colour. |
 | Contact | Boundary contact alone is not overlap. |
 | Completion | Any assembly within tolerances counts, including alternatives to the reference solution. |
 
@@ -85,6 +85,6 @@ Completion is judged from the current geometry, not by comparison with the refer
 
 The depth criteria catch long, thin misfits that an area threshold alone would accept.
 
-The overlap colouring uses exactly the same depth test as completion, so a red piece and "solved" never appear together. Penetration below `contactNoise`·S is treated as numerical noise.
+The red colouring uses exactly the same depth tests as completion (overlap depth, and outside depth for pieces partly in the tray), so a red piece and "solved" never appear together. Penetration below `contactNoise`·S is treated as numerical noise.
 
 These values are a first guess to be tuned through play, not settled constants.

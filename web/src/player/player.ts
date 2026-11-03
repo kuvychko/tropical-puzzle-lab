@@ -210,7 +210,7 @@ class Player {
               <li>Move all ${p.pieces.length} pieces into the square tray so they fill it with no overlaps.</li>
               ${relief ? '<li>The sloped tops must meet: neighbouring roofs agree in height along every shared edge.</li>' : '<li>Heights are uniform here; only the outlines matter.</li>'}
               <li>Pieces can be moved and turned but never flipped. Nothing snaps into place.</li>
-              <li>Pieces may pass through each other while you work. Overlapping pieces turn red.</li>
+              <li>Pieces may pass through each other while you work. Overlapping pieces, and pieces pushed through the tray wall, turn red.</li>
               <li>Any assembly that fills the tray within tolerance counts, not only the reference one.</li>
               <li>Optional <b>sticky edges</b> (off by default): a released piece aligns flush with a tray wall or piece edge it is already next to. It never pulls pieces toward the solution, and its use is noted in the report.</li>
               ${relief ? '<li>Optional <b>wall match</b> (off by default): click a side wall to highlight walls of other pieces with the same heights at both ends. A tighter tolerance is a stronger hint. Nothing moves, and its use and tightest tolerance are noted in the report.</li>' : ''}
@@ -286,7 +286,8 @@ class Player {
   private afterPosesChanged(): void {
     this.session.poses.forEach((pose, i) => placeObject(this.pieces[i].group, pose));
     this.evaluation = evaluate(this.puzzle, this.session.poses);
-    this.pieces.forEach((p, i) => p.mesh.material.color.setHex(this.evaluation.overlapping[i] ? this.colors.overlap : this.colors.piece));
+    const e = this.evaluation;
+    this.pieces.forEach((p, i) => p.mesh.material.color.setHex(e.overlapping[i] || e.crossingWall[i] ? this.colors.overlap : this.colors.piece));
     if (this.evaluation.solved && !this.wasSolved && !this.session.solvedAt) this.session.solvedAt = new Date().toISOString();
     this.wasSolved = this.evaluation.solved;
     this.updateHandle();
@@ -689,14 +690,16 @@ class Player {
     const e = this.evaluation;
     const s = this.session;
     const red = e.overlapping.filter(Boolean).length;
+    const walls = e.crossingWall.filter(Boolean).length;
+    const plural = (k: number) => (k === 1 ? 'piece' : 'pieces');
     let status: string;
     let cls = '';
     if (e.solved) {
       const notes = [s.revealed && 'solution was shown', s.snaps && 'sticky edges', s.wallMatches && 'wall match'].filter(Boolean);
       status = `Solved in ${formatTime(s.elapsedMs)}${notes.length ? ` (${notes.join(', ')})` : ''}`;
       cls = 'solved';
-    } else if (red) {
-      status = `${red} pieces overlapping`;
+    } else if (red || walls) {
+      status = [red && `${red} ${plural(red)} overlapping`, walls && `${walls} ${plural(walls)} through the tray wall`].filter(Boolean).join(', ');
       cls = 'warn';
     } else if (e.checks.noOverlap && e.checks.inside && e.checks.area && !e.checks.roof) {
       status = 'The outlines fit, but the roof heights do not meet';
