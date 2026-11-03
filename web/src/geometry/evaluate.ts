@@ -45,7 +45,7 @@ export function worldPolygons(puzzle: Puzzle, poses: Pose[]): Vec2[][] {
 }
 
 /** Shared edge segments between two placed pieces and the roof mismatch along each. */
-function seamsBetween(
+export function seamsBetween(
   pa: Vec2[], pb: Vec2[], roofA: (p: Vec2) => number, roofB: (p: Vec2) => number,
   cosTol: number, lateralTol: number, minLength: number,
 ): { length: number; mismatch: number }[] {
@@ -83,18 +83,31 @@ function seamsBetween(
   return found;
 }
 
-export function evaluate(puzzle: Puzzle, poses: Pose[]): Evaluation {
+/** The puzzle's scale-relative tolerances in mm (and mm² for area), shared by every geometric test. */
+export function tolerances(puzzle: Puzzle) {
   const v = puzzle.validation;
   const span = puzzle.geometry.spanMm;
+  const depth = v.overlapDepth * span;
+  const noise = v.contactNoise * span;
+  return {
+    noise,
+    depth,
+    outside: v.outsideDepth * span,
+    area: v.areaError * area(puzzle.geometry.target.vertices),
+    roof: puzzle.variant === 'relief' && v.roofMismatch != null ? v.roofMismatch * (puzzle.geometry.reliefMm ?? 0) : null,
+    /** Two edges this close side by side count as one shared edge. */
+    lateral: 2 * depth + noise,
+    cosAngle: Math.cos((v.edgeAngleDeg * Math.PI) / 180),
+    minSeam: v.edgeMinOverlap * span,
+  };
+}
+
+export function evaluate(puzzle: Puzzle, poses: Pose[]): Evaluation {
   const target = puzzle.geometry.target.vertices;
   const targetArea = area(target);
-  const noise = v.contactNoise * span;
-  const tol = {
-    depth: v.overlapDepth * span,
-    outside: v.outsideDepth * span,
-    area: v.areaError * targetArea,
-    roof: puzzle.variant === 'relief' && v.roofMismatch != null ? v.roofMismatch * (puzzle.geometry.reliefMm ?? 0) : null,
-  };
+  const t = tolerances(puzzle);
+  const noise = t.noise;
+  const tol = { depth: t.depth, outside: t.outside, area: t.area, roof: t.roof };
 
   const polys = worldPolygons(puzzle, poses);
   const boxes = polys.map(bounds);
@@ -102,8 +115,8 @@ export function evaluate(puzzle: Puzzle, poses: Pose[]): Evaluation {
   const overlapping = new Array<boolean>(n).fill(false);
   const overlaps: PairContact[] = [];
   const seams: RoofSeam[] = [];
-  const lateralTol = 2 * tol.depth + noise;
-  const cosTol = Math.cos((v.edgeAngleDeg * Math.PI) / 180);
+  const lateralTol = t.lateral;
+  const cosTol = t.cosAngle;
   let overlapArea = 0;
   let worstDepth = 0;
   let worstRoof = 0;
@@ -122,7 +135,7 @@ export function evaluate(puzzle: Puzzle, poses: Pose[]): Evaluation {
       if (tol.roof != null && depth > -lateralTol) {
         const roofA = (p: Vec2) => roofAt(puzzle.pieces[a], poses[a], p);
         const roofB = (p: Vec2) => roofAt(puzzle.pieces[b], poses[b], p);
-        for (const s of seamsBetween(polys[a], polys[b], roofA, roofB, cosTol, lateralTol, v.edgeMinOverlap * span)) {
+        for (const s of seamsBetween(polys[a], polys[b], roofA, roofB, cosTol, lateralTol, t.minSeam)) {
           seams.push({ a, b, ...s });
           worstRoof = Math.max(worstRoof, s.mismatch);
         }

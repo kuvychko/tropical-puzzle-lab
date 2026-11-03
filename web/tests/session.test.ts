@@ -35,6 +35,21 @@ describe('sessions', () => {
     }
   });
 
+  it('loads sessions saved before glue existed with glue off, and reports glue use', () => {
+    const store = memoryStore();
+    const { glue: _g, glues: _n, glueDetached: _d, ...old } = newSession(rev2, 7, scramble(rev2, 7));
+    store.setItem(storageKey(rev2.id), JSON.stringify(old));
+    const loaded = loadSession(rev2, store);
+    expect(loaded.status).toBe('ok');
+    if (loaded.status !== 'ok') return;
+    expect(loaded.session.glue).toBe(false);
+    expect(loaded.session.glues).toBe(0);
+    expect(loaded.session.glueDetached).toEqual([]);
+    expect(report(rev2, loaded.session, false)).toContain('assist=none');
+    loaded.session.glues = 2;
+    expect(report(rev2, loaded.session, false)).toContain('assist=glue(2)');
+  });
+
   it('loads sessions saved before sticky edges existed, and reports assist use', () => {
     const store = memoryStore();
     const { stickyEdges: _s, snaps: _n, ...old } = newSession(rev2, 7, scramble(rev2, 7));

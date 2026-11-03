@@ -25,6 +25,10 @@ export interface Session {
   wallMatchMm: number;
   wallMatches: number;
   wallMatchTightestMm: number | null;
+  /** Optional glue assist (off by default), how many pairs it has joined, and pairs the player detached (`pairKey`s). */
+  glue: boolean;
+  glues: number;
+  glueDetached: string[];
   elapsedMs: number;
   solvedAt: string | null;
 }
@@ -46,7 +50,7 @@ export function browserStore(): KeyValueStore | null {
 
 export function newSession(
   puzzle: Puzzle, seed: number, poses: Pose[], revealed = false, stickyEdges = false,
-  wallMatch = false, wallMatchMm: number = DEFAULT_WALL_MATCH_MM,
+  wallMatch = false, wallMatchMm: number = DEFAULT_WALL_MATCH_MM, glue = false,
 ): Session {
   return {
     version: SESSION_VERSION,
@@ -65,6 +69,9 @@ export function newSession(
     wallMatchMm,
     wallMatches: 0,
     wallMatchTightestMm: null,
+    glue,
+    glues: 0,
+    glueDetached: [],
     elapsedMs: 0,
     solvedAt: null,
   };
@@ -114,6 +121,9 @@ export function loadSession(puzzle: Puzzle, store: KeyValueStore | null): LoadRe
   s.wallMatchMm = (WALL_MATCH_STOPS_MM as readonly number[]).includes(s.wallMatchMm) ? s.wallMatchMm : DEFAULT_WALL_MATCH_MM;
   s.wallMatches = Number.isInteger(s.wallMatches) && s.wallMatches > 0 ? s.wallMatches : 0;
   s.wallMatchTightestMm = Number.isFinite(s.wallMatchTightestMm) ? s.wallMatchTightestMm : null;
+  s.glue = s.glue === true;
+  s.glues = Number.isInteger(s.glues) && s.glues > 0 ? s.glues : 0;
+  s.glueDetached = Array.isArray(s.glueDetached) ? s.glueDetached.filter((k) => typeof k === 'string') : [];
   s.undo = s.undo.filter((p) => validPoses(p, puzzle));
   s.redo = s.redo.filter((p) => validPoses(p, puzzle));
   return { status: 'ok', session: s };
@@ -171,6 +181,7 @@ function assists(session: Session): string {
   const used = [];
   if (session.snaps) used.push(`sticky-edges(${session.snaps})`);
   if (session.wallMatches) used.push(`wall-match(${session.wallMatches}@${session.wallMatchTightestMm ?? session.wallMatchMm}mm)`);
+  if (session.glues) used.push(`glue(${session.glues})`);
   return used.join('+') || 'none';
 }
 
