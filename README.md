@@ -2,7 +2,7 @@
 
 Generate, explore, and solve tropical geometry puzzles in the browser: a laboratory for studying how puzzles are built and what makes them difficult.
 
-**Play:** https://kuvychko.github.io/tropical-puzzle-lab/ (once GitHub Pages is enabled)
+**Play:** https://maxpluslab.github.io/tropical-puzzle-lab/
 
 ## The idea
 
@@ -24,8 +24,9 @@ The first puzzle is **rev2**: nine pieces, four of them fully interior, which wa
 | Views | 0 iso, 1 top, 3 front, 4 rear, 5 left, 6 right (side views at table level, to compare heights), Z zoom to fit (also buttons in the panel). The camera can orbit down to table level. Dragging pieces is paused at grazing angles; keyboard nudges still work |
 | History | Ctrl+Z undo, Ctrl+Shift+Z redo, Restart, New scramble |
 | Sticky edges | Optional, off by default (checkbox or S): a released piece aligns flush with a tray wall or piece edge it is already next to |
+| Wall match | Relief puzzles only, optional, off by default (checkbox or M): click a side wall to highlight walls of other pieces with the same heights at both ends, within an adjustable tolerance. Nothing moves |
 
-Pieces cannot be flipped and nothing pulls them toward the solution. The optional sticky-edges assist only aligns a piece with edges it is already touching, and its use is noted in the report. Pieces may pass through each other. Overlapping pieces turn red.
+Pieces cannot be flipped and nothing pulls them toward the solution. The optional sticky-edges assist only aligns a piece with edges it is already touching, wall match only highlights candidates, and the use of either is noted in the report. Pieces may pass through each other. Overlapping pieces turn red.
 
 Progress is saved in your browser. **Copy report line** gives a line like `puzzle=rev2 rev=1 seed=… time=…` to quote when you share observations.
 
@@ -33,16 +34,17 @@ Progress is saved in your browser. **Copy report line** gives a line like `puzzl
 
 Working:
 
-- Gallery with one card per puzzle (rev2, four min-convention ones and a rational one), each playable in relief or flat mode.
+- Gallery with one card per puzzle (rev2, four min-convention ones and the rational rat1 and rat2), each playable in relief or flat mode.
 - Seeded scrambles, with direct links such as `?puzzle=rev2&seed=123`.
 - Moving, turning and nudging pieces.
 - Overlap colouring and tolerance-based completion (including roof continuity for relief).
 - Undo and redo.
 - Saving progress and resuming after a reload.
 - An optional solution outline whose use is recorded.
-- An optional sticky-edges assist, also recorded.
+- Optional sticky-edges and wall-match assists, also recorded.
+- An experimental 1–5 difficulty rating on each card, computed from the pieces' shapes (Leinster–Cobbold diversity of their intrinsic volumes); the "How is this calculated?" link explains it.
 
-Planned: more puzzles and parametric families, an explode/illustration mode, session export, mobile input, automated solvers and difficulty studies. Difficulty is a research question; nothing here classifies it yet.
+Planned: more puzzles and parametric families, an explode/illustration mode, session export, mobile input, automated solvers and difficulty studies. Difficulty is a research question; the rating above is a first heuristic, not a validated measure.
 
 ## Printing
 

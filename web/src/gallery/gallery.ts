@@ -74,7 +74,7 @@ export async function renderGallery(root: HTMLElement): Promise<void> {
       </div>
       <div class="cards" data-cards><p class="loading">Loading puzzles…</p></div>
       <footer class="foot">An experimental tool for studying puzzle construction and difficulty.
-        <a href="https://github.com/kuvychko/tropical-puzzle-lab">Source on GitHub</a></footer>
+        <a href="https://github.com/maxpluslab/tropical-puzzle-lab">Source on GitHub</a></footer>
     </div>`;
   const cards = root.querySelector<HTMLElement>('[data-cards]')!;
   let mode = savedMode();
