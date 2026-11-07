@@ -9,7 +9,7 @@ from tropical_puzzle_lab.geometry import centroid
 from tropical_puzzle_lab.tropical import Term, tropical_value
 
 PUZZLES = Path(__file__).resolve().parents[2] / "puzzles"
-RECIPES = ["new1", "new2", "new3", "new4"]
+RECIPES = ["new1", "new2", "new3", "new4", "new5"]
 
 
 @pytest.fixture(scope="module", params=RECIPES)
