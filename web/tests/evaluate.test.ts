@@ -90,6 +90,37 @@ describe('rev2 evaluation', () => {
     expect(e.solved).toBe(false);
   });
 
+  it('colours pieces pushed through the tray wall when the whole assembly is shifted', () => {
+    const shift = 2 * rev2.validation.outsideDepth * rev2.geometry.spanMm; // ~1.7 mm, past the tolerance
+    const half = rev2.geometry.spanMm / 2;
+    const poses = reference(rev2).map((p) => ({ ...p, x: p.x + shift }));
+    const e = evaluate(rev2, poses);
+    expect(e.solved).toBe(false);
+    expect(e.checks.inside).toBe(false);
+    rev2.pieces.forEach((piece, i) => {
+      const touchesRightWall = transform(piece.polygon, reference(rev2)[i]).some(([x]) => x > half - 1e-6);
+      expect(e.crossingWall[i]).toBe(touchesRightWall);
+    });
+    expect(e.crossingWall.some(Boolean)).toBe(true);
+  });
+
+  it('does not colour a shift within the outside tolerance', () => {
+    const shift = 0.5 * rev2.validation.outsideDepth * rev2.geometry.spanMm;
+    for (const p of [rev2, flat]) {
+      const e = evaluate(p, reference(p).map((q) => ({ ...q, x: q.x + shift })));
+      expect(e.crossingWall.some(Boolean)).toBe(false);
+      expect(e.solved).toBe(true);
+    }
+  });
+
+  it('does not colour a piece parked entirely outside the tray', () => {
+    const poses = reference(rev2);
+    poses[0].x -= rev2.geometry.spanMm; // perimeter piece A moved well clear of the frame
+    const e = evaluate(rev2, poses);
+    expect(e.crossingWall[0]).toBe(false);
+    expect(e.checks.inside).toBe(false);
+  });
+
   it('rejects a slightly rotated interior piece in relief via depth or roof', () => {
     const poses = reference(rev2);
     poses[6].theta += 0.05;
@@ -100,7 +131,7 @@ describe('rev2 evaluation', () => {
     for (let k = 0; k < 50; k++) {
       const poses = reference(rev2).map((p, i) => ({ ...p, x: p.x + ((k * 7 + i * 3) % 11) * 0.12 - 0.6, theta: p.theta + ((k + i) % 5 - 2) * 0.004 }));
       const e = evaluate(rev2, poses);
-      if (e.overlapping.some(Boolean)) expect(e.solved).toBe(false);
+      if (e.overlapping.some(Boolean) || e.crossingWall.some(Boolean)) expect(e.solved).toBe(false);
     }
   });
 });
@@ -155,6 +186,7 @@ describe('scramble', () => {
     const poses = scramble(rev2, rev2.scramble.defaultSeed);
     const e = evaluate(rev2, poses);
     expect(e.overlaps).toHaveLength(0);
+    expect(e.crossingWall.some(Boolean)).toBe(false);
     const target = rev2.geometry.target.vertices;
     rev2.pieces.forEach((piece, i) => expect(penetration(transform(piece.polygon, poses[i]), target)).toBeLessThan(0));
   });

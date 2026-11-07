@@ -1,6 +1,7 @@
 // Placement evaluation shared by overlap colouring and the completion check.
 // One numerical policy: a piece is drawn red exactly when it fails the overlap
-// criterion that also blocks completion.
+// criterion, or the inside criterion while partly in the tray, that also blocks
+// completion. Pieces parked entirely outside the tray are not red.
 import type { PieceDef, Pose, Puzzle, Vec2 } from '../types';
 import { area, bounds, boxesTouch, intersectionArea, outsideDepth, penetration, toLocal, transform } from './polygon';
 
@@ -22,6 +23,8 @@ export interface RoofSeam {
 export interface Evaluation {
   /** Per piece, in puzzle order. */
   overlapping: boolean[];
+  /** Partly inside the tray and sticking out through a wall by more than the outside tolerance. */
+  crossingWall: boolean[];
   outsideDepth: number[];
   overlaps: PairContact[];
   seams: RoofSeam[];
@@ -137,6 +140,8 @@ export function evaluate(puzzle: Puzzle, poses: Pose[]): Evaluation {
     return depth > noise ? depth : 0;
   });
   const worstOutside = Math.max(0, ...outside);
+  // The same test as `checks.inside`, restricted to pieces that reach into the tray.
+  const crossingWall = polys.map((p, i) => outside[i] > tol.outside && penetration(p, target) > noise);
   // Inclusion–exclusion to first order: exact when no three pieces share area.
   const uncoveredArea = Math.max(0, targetArea - insideArea + overlapArea);
 
@@ -148,6 +153,7 @@ export function evaluate(puzzle: Puzzle, poses: Pose[]): Evaluation {
   };
   return {
     overlapping,
+    crossingWall,
     outsideDepth: outside,
     overlaps,
     seams,
