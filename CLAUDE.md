@@ -73,7 +73,7 @@ There are three concerns, connected only by JSON:
   - `src/geometry/glue.ts`, off by default, toggled with **G**.
   - Pairs glue when they fit by the same seam test and tolerances as completion (`tolerances`, `seamsBetween` in `evaluate.ts`), decided only when a move is released. Glued groups move rigidly.
   - It must never consult `reference`.
-  - Each newly glued pair increments `session.glues`, shown as `assist=glue(N)`.
+  - Each pair glued for the first time in an attempt is added to `session.gluedPairs` and increments `session.glues` (`recordGlue`), shown as `assist=glue(N)`. Toggling, undo and redo never recount a pair.
 - **Wall match is opt-in and never moves anything.**
   - `src/geometry/walls.ts`, off by default, toggled with **M**, relief variants only.
   - It compares piece shapes only: it must never consult `reference` or poses.

@@ -62,7 +62,7 @@ It does not use the reference solution, so any assembly that fits glues, includi
 
 Double-clicking (or double-tapping) a glued piece detaches it from its group. A detached pair stays apart until the two pieces have been moved so they no longer fit. Undo removes glue made by the undone move, because the pieces no longer fit. With sticky edges on, a released group snaps as one, to edges outside the group.
 
-Each newly glued pair is counted in the session. The report line shows `assist=glue(N)`.
+Each pair is counted the first time it is glued in an attempt, including pairs that already fit when glue is turned on; turning glue off and on, undo and redo never count a pair again. The report line shows `assist=glue(N)`, where N is the number of distinct pairs glued.
 
 ## Wall match (optional assist)
 

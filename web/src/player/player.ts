@@ -8,7 +8,7 @@ import { fittingPairs, groups, members, moveRigidly, type Pair, pairKey } from '
 import { snapPose, snapTolerances } from '../geometry/snap';
 import { matchingWalls, WALL_MATCH_STOPS_MM, type WallRef } from '../geometry/walls';
 import {
-  browserStore, formatTime, loadSession, newSession, pushUndo, recordWallMatch, redo, report, saveSession, type Session, undo,
+  browserStore, formatTime, loadSession, newSession, pushUndo, recordGlue, recordWallMatch, redo, report, saveSession, type Session, undo,
 } from '../sessions/session';
 import { fetchIndex, showDifficulty } from '../difficulty/rating';
 import { constructions, modeSwitchHtml } from '../gallery/modes';
@@ -258,7 +258,7 @@ class Player {
       if (loaded.status === 'ok') this.notify(`Started seed ${seed}; the previous attempt (seed ${loaded.session.seed}) was replaced.`);
     }
     this.ghost.visible = false;
-    this.refreshGlue(false);
+    this.refreshGlue();
     this.afterPosesChanged();
     this.wasSolved = this.evaluation.solved;
     this.save();
@@ -280,7 +280,7 @@ class Player {
       this.session.wallMatch, this.session.wallMatchMm, this.session.glue,
     );
     this.clearWall();
-    this.refreshGlue(false);
+    this.refreshGlue();
     this.select(null);
     this.afterPosesChanged();
     this.wasSolved = this.evaluation.solved;
@@ -292,9 +292,8 @@ class Player {
     pushUndo(this.session);
   }
 
-  /** `countGlue` is false for undo and redo, so revisiting a state doesn't count its glue again. */
-  private commit(countGlue = true): void {
-    this.refreshGlue(countGlue);
+  private commit(): void {
+    this.refreshGlue();
     this.afterPosesChanged();
     this.save();
   }
@@ -308,18 +307,18 @@ class Player {
   /**
    * Glue is recomputed from the committed poses: every pair that fits is glued, except pairs the
    * player detached, until they are moved apart. A glued group moves rigidly, so it stays glued.
+   * While glue is off nothing is glued, and detached pairs are kept for when it is turned back on.
    */
-  private refreshGlue(count: boolean): void {
+  private refreshGlue(): void {
     const s = this.session;
     const fitting = s.glue ? fittingPairs(this.puzzle, s.poses) : [];
-    const fitKeys = new Set(fitting.map((p) => this.pairId(p)));
-    s.glueDetached = s.glueDetached.filter((k) => fitKeys.has(k));
+    if (s.glue) {
+      const fitKeys = new Set(fitting.map((p) => this.pairId(p)));
+      s.glueDetached = s.glueDetached.filter((k) => fitKeys.has(k));
+    }
     const detached = new Set(s.glueDetached);
     const next = fitting.filter((p) => !detached.has(this.pairId(p)));
-    if (count) {
-      const before = new Set(this.glued.map((p) => this.pairId(p)));
-      s.glues += next.filter((p) => !before.has(this.pairId(p))).length;
-    }
+    recordGlue(s, next.map((p) => this.pairId(p)));
     this.glued = next;
     this.groupOf = groups(this.pieces.length, next);
     this.updateHighlights();
@@ -332,14 +331,14 @@ class Player {
 
   private detach(index: number): void {
     this.session.glueDetached.push(...this.glued.filter(([a, b]) => a === index || b === index).map((p) => this.pairId(p)));
-    this.refreshGlue(false);
+    this.refreshGlue();
     this.save();
     this.notify(`Piece ${this.puzzle.pieces[index].id} detached. Move it away before it can glue to those pieces again.`);
   }
 
   private setGlue(on: boolean): void {
     this.session.glue = on;
-    this.refreshGlue(true);
+    this.refreshGlue();
     this.save();
     this.updateHud();
   }
@@ -731,7 +730,7 @@ class Player {
 
   private historyStep(step: (s: Session) => boolean): void {
     this.endBurst();
-    if (step(this.session)) this.commit(false);
+    if (step(this.session)) this.commit();
   }
 
   // ---- camera --------------------------------------------------------------

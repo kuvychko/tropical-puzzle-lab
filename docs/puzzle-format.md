@@ -89,7 +89,7 @@ The rating is computed by `tpl-export` from each piece's solid (its footprint ex
   "undo": [[…poses…]], "redo": [],
   "revealed": false, "stickyEdges": false, "snaps": 0,
   "wallMatch": false, "wallMatchMm": 2, "wallMatches": 0, "wallMatchTightestMm": null,
-  "glue": false, "glues": 0, "glueDetached": [],
+  "glue": false, "glues": 0, "gluedPairs": [], "glueDetached": [],
   "elapsedMs": 0, "solvedAt": null
 }
 ```
@@ -105,6 +105,6 @@ Sessions are not migrated. They stay in the visitor's browser and are never sent
 
 `wallMatch` is the wall match toggle and `wallMatchMm` its current tolerance. `wallMatches` counts queries in this attempt, and `wallMatchTightestMm` is the tightest tolerance any of them used. Sessions saved before these fields existed load with `false`, `2`, `0` and `null`.
 
-`glue` is the glue toggle and `glues` counts the pairs it has joined in this attempt. `glueDetached` lists pairs the player detached that still fit, as `"<id>|<id>"` with the ids in sorted order. Which pairs are glued is not stored: it is recomputed from the poses. Sessions saved before these fields existed load with `false`, `0` and `[]`.
+`glue` is the glue toggle. `gluedPairs` lists every distinct pair glue has joined in this attempt, and `glues` is their count, so turning glue off and on, undo, redo or regluing a detached pair never counts a pair twice. `glueDetached` lists pairs the player detached that still fit. Pairs are written `"<id>|<id>"` with the ids in sorted order. Which pairs are glued now is not stored: it is recomputed from the poses. Sessions saved before these fields existed load with `false`, `0`, `[]` and `[]`.
 
 `elapsedMs` counts active time: from the first move, while the page is visible, until the puzzle is solved.
