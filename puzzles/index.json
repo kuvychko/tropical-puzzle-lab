@@ -6,10 +6,10 @@
     "q": 2.0,
     "direction": "lower-diversity-is-harder",
     "thresholds": [
-      0.125,
-      0.375,
-      0.625,
-      0.875
+      0.25,
+      0.3,
+      0.45,
+      0.62
     ]
   },
   "puzzles": [
@@ -40,7 +40,7 @@
       "difficulty": {
         "diversity": 6.426513,
         "x": 0.361768,
-        "rating": 4
+        "rating": 3
       }
     },
     {
@@ -55,7 +55,7 @@
       "difficulty": {
         "diversity": 4.496934,
         "x": 0.233129,
-        "rating": 4
+        "rating": 5
       }
     },
     {
@@ -85,7 +85,7 @@
       "difficulty": {
         "diversity": 5.681002,
         "x": 0.585125,
-        "rating": 3
+        "rating": 2
       }
     },
     {
@@ -100,7 +100,7 @@
       "difficulty": {
         "diversity": 6.633686,
         "x": 0.704211,
-        "rating": 2
+        "rating": 1
       }
     },
     {
@@ -115,7 +115,7 @@
       "difficulty": {
         "diversity": 3.500216,
         "x": 0.312527,
-        "rating": 4
+        "rating": 3
       }
     },
     {
@@ -130,7 +130,37 @@
       "difficulty": {
         "diversity": 3.939849,
         "x": 0.367481,
-        "rating": 4
+        "rating": 3
+      }
+    },
+    {
+      "id": "new5",
+      "construction": "new5",
+      "revision": 1,
+      "name": "6 intro",
+      "description": "Six large pieces with sloped tops: a gentle first puzzle. Fill the square tray so the roof forms one continuous surface.",
+      "variant": "relief",
+      "pieceCount": 6,
+      "path": "new5/puzzle.json",
+      "difficulty": {
+        "diversity": 4.466807,
+        "x": 0.693361,
+        "rating": 1
+      }
+    },
+    {
+      "id": "new5-flat",
+      "construction": "new5",
+      "revision": 1,
+      "name": "6 intro (flat)",
+      "description": "The 6 intro footprints with the relief removed. Fill the square tray; heights give no clues.",
+      "variant": "tiling",
+      "pieceCount": 6,
+      "path": "new5-flat/puzzle.json",
+      "difficulty": {
+        "diversity": 4.186563,
+        "x": 0.637313,
+        "rating": 1
       }
     },
     {
@@ -160,7 +190,7 @@
       "difficulty": {
         "diversity": 4.538006,
         "x": 0.353801,
-        "rating": 4
+        "rating": 3
       }
     },
     {
@@ -175,7 +205,7 @@
       "difficulty": {
         "diversity": 5.709562,
         "x": 0.247872,
-        "rating": 4
+        "rating": 5
       }
     },
     {
@@ -205,7 +235,7 @@
       "difficulty": {
         "diversity": 5.09878,
         "x": 0.512348,
-        "rating": 3
+        "rating": 2
       }
     },
     {
