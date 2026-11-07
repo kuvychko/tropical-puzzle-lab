@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { scramble } from '../src/geometry/scramble';
-import { type KeyValueStore, loadSession, newSession, pushUndo, recordWallMatch, redo, report, saveSession, storageKey, undo } from '../src/sessions/session';
+import { type KeyValueStore, loadSession, newSession, pushUndo, recordGlue, recordWallMatch, redo, report, saveSession, storageKey, undo } from '../src/sessions/session';
 import type { Puzzle } from '../src/types';
 
 const rev2: Puzzle = JSON.parse(readFileSync(new URL('../../puzzles/rev2/puzzle.json', import.meta.url), 'utf-8'));
@@ -33,6 +33,37 @@ describe('sessions', () => {
       expect(redo(loaded.session)).toBe(true);
       expect(loaded.session.poses[0].x).toBeCloseTo(s.poses[0].x);
     }
+  });
+
+  it('loads sessions saved before glue existed with glue off, and reports glue use', () => {
+    const store = memoryStore();
+    const { glue: _g, glues: _n, gluedPairs: _p, glueDetached: _d, ...old } = newSession(rev2, 7, scramble(rev2, 7));
+    store.setItem(storageKey(rev2.id), JSON.stringify(old));
+    const loaded = loadSession(rev2, store);
+    expect(loaded.status).toBe('ok');
+    if (loaded.status !== 'ok') return;
+    expect(loaded.session.glue).toBe(false);
+    expect(loaded.session.glues).toBe(0);
+    expect(loaded.session.gluedPairs).toEqual([]);
+    expect(loaded.session.glueDetached).toEqual([]);
+    expect(report(rev2, loaded.session, false)).toContain('assist=none');
+    loaded.session.glues = 2;
+    expect(report(rev2, loaded.session, false)).toContain('assist=glue(2)');
+  });
+
+  it('counts each glued pair once per attempt, however often glue is toggled or undone', () => {
+    const s = newSession(rev2, 7, scramble(rev2, 7));
+    recordGlue(s, ['A|B', 'B|C']);
+    // Glue off and on again, undo then redo: the same pairs are glued again.
+    recordGlue(s, []);
+    recordGlue(s, ['A|B', 'B|C']);
+    recordGlue(s, ['B|C']);
+    recordGlue(s, ['A|B', 'B|C']);
+    expect(s.glues).toBe(2);
+    recordGlue(s, ['A|B', 'C|D', 'C|D']);
+    expect(s.glues).toBe(3);
+    expect(s.gluedPairs).toEqual(['A|B', 'B|C', 'C|D']);
+    expect(report(rev2, s, false)).toContain('assist=glue(3)');
   });
 
   it('loads sessions saved before sticky edges existed, and reports assist use', () => {

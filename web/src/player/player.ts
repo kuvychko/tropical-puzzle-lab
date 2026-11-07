@@ -4,10 +4,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { evaluate, type Evaluation } from '../geometry/evaluate';
 import { bounds, transform } from '../geometry/polygon';
 import { randomSeed, scramble } from '../geometry/scramble';
-import { snapPose } from '../geometry/snap';
+import { fittingPairs, groups, members, moveRigidly, type Pair, pairKey } from '../geometry/glue';
+import { snapPose, snapTolerances } from '../geometry/snap';
 import { matchingWalls, WALL_MATCH_STOPS_MM, type WallRef } from '../geometry/walls';
 import {
-  browserStore, formatTime, loadSession, newSession, pushUndo, recordWallMatch, redo, report, saveSession, type Session, undo,
+  browserStore, formatTime, loadSession, newSession, pushUndo, recordGlue, recordWallMatch, redo, report, saveSession, type Session, undo,
 } from '../sessions/session';
 import { fetchIndex, showDifficulty } from '../difficulty/rating';
 import { constructions, modeSwitchHtml } from '../gallery/modes';
@@ -37,9 +38,13 @@ const VIEW_BUTTONS: [View, string, string][] = [
   ['iso', 'Iso', '0'], ['top', 'Top', '1'], ['front', 'Front', '3'], ['rear', 'Rear', '4'], ['left', 'Left', '5'], ['right', 'Right', '6'],
 ];
 
+// Two presses on the same glued piece within this time detach it from its group.
+const DOUBLE_CLICK_MS = 400;
+
+// `group` is the dragged piece and everything glued to it, moved rigidly from their `poses0`.
 type Drag =
-  | { kind: 'move'; index: number; plane: THREE.Plane; offset: THREE.Vector2; changed: boolean }
-  | { kind: 'rotate'; index: number; plane: THREE.Plane; start: number; theta0: number; changed: boolean };
+  | { kind: 'move'; index: number; group: number[]; poses0: Pose[]; plane: THREE.Plane; offset: THREE.Vector2; changed: boolean }
+  | { kind: 'rotate'; index: number; group: number[]; poses0: Pose[]; plane: THREE.Plane; start: number; changed: boolean };
 
 export async function startPlayer(root: HTMLElement, puzzleId: string, params: URLSearchParams): Promise<void> {
   root.innerHTML = `<p class="loading">Loading ${escapeHtml(puzzleId)}…</p>`;
@@ -95,7 +100,10 @@ class Player {
   private raycaster = new THREE.Raycaster();
   private selected: number | null = null;
   private drag: Drag | null = null;
-  private lastClick: { x: number; y: number; index: number } | null = null;
+  private lastClick: { x: number; y: number; index: number; time: number } | null = null;
+  /** Glued pairs and the group label of each piece, from the last committed poses. */
+  private glued: Pair[] = [];
+  private groupOf: number[] = [];
   private emptyPress: { x: number; y: number } | null = null;
   private wallPress: (WallRef & { x: number; y: number }) | null = null;
   private activeWall: WallRef | null = null;
@@ -186,6 +194,9 @@ class Player {
           <label class="toggle" title="When you release a piece, align it flush with a nearby tray wall or piece edge (S). Recorded in the report.">
             <input data-ui="sticky" type="checkbox" /> Sticky edges
           </label>
+          <label class="toggle" title="Pieces that fit together are glued and move as one; double-click a piece to detach it (G). Recorded in the report.">
+            <input data-ui="glue" type="checkbox" /> Glue
+          </label>
           ${relief ? `<label class="toggle" title="Click a piece's side wall to highlight pieces whose wall heights agree with it (M). Recorded in the report.">
             <input data-ui="wallMatch" type="checkbox" /> Wall match
           </label>
@@ -213,6 +224,7 @@ class Player {
               <li>Pieces may pass through each other while you work. Overlapping pieces, and pieces pushed through the tray wall, turn red.</li>
               <li>Any assembly that fills the tray within tolerance counts, not only the reference one.</li>
               <li>Optional <b>sticky edges</b> (off by default): a released piece aligns flush with a tray wall or piece edge it is already next to. It never pulls pieces toward the solution, and its use is noted in the report.</li>
+              <li>Optional <b>glue</b> (off by default): two pieces that fit together, sharing an edge${relief ? ' with tops that meet' : ''}, are glued and move and turn as one. It judges only how the pieces fit, never the solution${relief ? '' : ', so in a flat puzzle wrong pairs can glue too'}. Double-click a piece to detach it. Its use is noted in the report.</li>
               ${relief ? '<li>Optional <b>wall match</b> (off by default): click a side wall to highlight walls of other pieces with the same heights at both ends. A tighter tolerance is a stronger hint. Nothing moves, and its use and tightest tolerance are noted in the report.</li>' : ''}
             </ul>
             <h3>Controls</h3>
@@ -221,7 +233,7 @@ class Player {
               <li><b>Arrows</b> nudge 1 mm (Shift: 0.1 mm). <b>Q / E</b> turn 1° (Shift: 0.1°).</li>
               <li><b>Tab</b> selects the next piece. Click the same spot again to reach a piece underneath.</li>
               <li>Camera as in PrusaSlicer: <b>left-drag</b> empty space to orbit, <b>right-</b> or <b>middle-drag</b> to pan, the <b>wheel</b> zooms.</li>
-              <li>Views: <b>0</b> iso, <b>1</b> top, <b>3</b> front, <b>4</b> rear, <b>5</b> left, <b>6</b> right (side views at table level, to compare heights), <b>Z</b> zoom to fit. <b>S</b> turns sticky edges on or off.${relief ? ' <b>M</b> turns wall match on or off.' : ''}</li>
+              <li>Views: <b>0</b> iso, <b>1</b> top, <b>3</b> front, <b>4</b> rear, <b>5</b> left, <b>6</b> right (side views at table level, to compare heights), <b>Z</b> zoom to fit. <b>S</b> turns sticky edges on or off, <b>G</b> glue.${relief ? ' <b>M</b> turns wall match on or off.' : ''}</li>
               <li><b>Ctrl+Z</b> undo, <b>Ctrl+Shift+Z</b> redo. Progress is saved in this browser.</li>
             </ul>
             <button data-ui="closeRules" type="button">Start</button>
@@ -246,6 +258,7 @@ class Player {
       if (loaded.status === 'ok') this.notify(`Started seed ${seed}; the previous attempt (seed ${loaded.session.seed}) was replaced.`);
     }
     this.ghost.visible = false;
+    this.refreshGlue();
     this.afterPosesChanged();
     this.wasSolved = this.evaluation.solved;
     this.save();
@@ -264,9 +277,10 @@ class Player {
   private start(seed: number): void {
     this.session = newSession(
       this.puzzle, seed, scramble(this.puzzle, seed), this.session.revealed, this.session.stickyEdges,
-      this.session.wallMatch, this.session.wallMatchMm,
+      this.session.wallMatch, this.session.wallMatchMm, this.session.glue,
     );
     this.clearWall();
+    this.refreshGlue();
     this.select(null);
     this.afterPosesChanged();
     this.wasSolved = this.evaluation.solved;
@@ -279,8 +293,54 @@ class Player {
   }
 
   private commit(): void {
+    this.refreshGlue();
     this.afterPosesChanged();
     this.save();
+  }
+
+  // ---- glue ----------------------------------------------------------------
+
+  private pairId([a, b]: Pair): string {
+    return pairKey(this.puzzle.pieces[a].id, this.puzzle.pieces[b].id);
+  }
+
+  /**
+   * Glue is recomputed from the committed poses: every pair that fits is glued, except pairs the
+   * player detached, until they are moved apart. A glued group moves rigidly, so it stays glued.
+   * While glue is off nothing is glued, and detached pairs are kept for when it is turned back on.
+   */
+  private refreshGlue(): void {
+    const s = this.session;
+    const fitting = s.glue ? fittingPairs(this.puzzle, s.poses) : [];
+    if (s.glue) {
+      const fitKeys = new Set(fitting.map((p) => this.pairId(p)));
+      s.glueDetached = s.glueDetached.filter((k) => fitKeys.has(k));
+    }
+    const detached = new Set(s.glueDetached);
+    const next = fitting.filter((p) => !detached.has(this.pairId(p)));
+    recordGlue(s, next.map((p) => this.pairId(p)));
+    this.glued = next;
+    this.groupOf = groups(this.pieces.length, next);
+    this.updateHighlights();
+  }
+
+  /** The piece and every piece glued to it. */
+  private groupOfPiece(index: number): number[] {
+    return this.session.glue ? members(this.groupOf, index) : [index];
+  }
+
+  private detach(index: number): void {
+    this.session.glueDetached.push(...this.glued.filter(([a, b]) => a === index || b === index).map((p) => this.pairId(p)));
+    this.refreshGlue();
+    this.save();
+    this.notify(`Piece ${this.puzzle.pieces[index].id} detached. Move it away before it can glue to those pieces again.`);
+  }
+
+  private setGlue(on: boolean): void {
+    this.session.glue = on;
+    this.refreshGlue();
+    this.save();
+    this.updateHud();
   }
 
   private afterPosesChanged(): void {
@@ -303,15 +363,17 @@ class Player {
     this.updateHandle();
   }
 
-  /** Selection and wall-match tints. These use the emissive channel, so overlap red still shows. */
+  /** Selection, glue and wall-match tints. These use the emissive channel, so overlap red still shows. */
   private updateHighlights(): void {
     const { selected, match, edge } = this.colors;
+    const group = this.selected == null ? [] : this.groupOfPiece(this.selected);
     this.pieces.forEach((p, i) => {
       const isSelected = i === this.selected;
+      const isGlued = !isSelected && group.includes(i);
       const isCandidate = this.wallCandidates.some((c) => c.piece === i);
-      p.edges.material.color.setHex(isSelected ? selected : isCandidate ? match : edge);
-      p.mesh.material.emissive.setHex(isSelected ? selected : isCandidate ? match : 0x000000);
-      p.mesh.material.emissiveIntensity = isSelected ? 0.12 : isCandidate ? 0.35 : 0;
+      p.edges.material.color.setHex(isSelected || isGlued ? selected : isCandidate ? match : edge);
+      p.mesh.material.emissive.setHex(isSelected || isGlued ? selected : isCandidate ? match : 0x000000);
+      p.mesh.material.emissiveIntensity = isSelected ? 0.12 : isGlued ? 0.06 : isCandidate ? 0.35 : 0;
     });
     this.dirty = true;
   }
@@ -430,6 +492,11 @@ class Player {
       this.setSticky(sticky.checked);
       sticky.blur(); // keep keyboard shortcuts working
     });
+    const glue = this.ui.glue as HTMLInputElement;
+    glue.addEventListener('change', () => {
+      this.setGlue(glue.checked);
+      glue.blur();
+    });
     if (this.puzzle.variant === 'relief') {
       const wallMatch = this.ui.wallMatch as HTMLInputElement;
       wallMatch.addEventListener('change', () => {
@@ -469,7 +536,10 @@ class Player {
       const p = this.pointOnPlane(e, plane);
       if (!p) return;
       this.controls.enabled = false;
-      this.drag = { kind: 'rotate', index, plane, start: Math.atan2(p.y - pose.y, p.x - pose.x), theta0: pose.theta, changed: false };
+      this.drag = {
+        kind: 'rotate', index, group: this.groupOfPiece(index), poses0: this.session.poses.map((q) => ({ ...q })),
+        plane, start: Math.atan2(p.y - pose.y, p.x - pose.x), changed: false,
+      };
       this.renderer.domElement.setPointerCapture(e.pointerId);
       return;
     }
@@ -487,9 +557,20 @@ class Player {
       return;
     }
     this.controls.enabled = false;
+    const last = this.lastClick;
+    const now = performance.now();
+    // A quick second press on a glued piece detaches it from its group.
+    if (
+      last && now - last.time < DOUBLE_CLICK_MS && Math.hypot(e.clientX - last.x, e.clientY - last.y) < CLICK_SLOP_PX &&
+      order.some((o) => o.index === last.index) && this.groupOfPiece(last.index).length > 1
+    ) {
+      this.lastClick = null;
+      this.detach(last.index);
+      this.select(last.index);
+      return;
+    }
     // Clicking the same spot again reaches the next piece underneath.
     let choice = order[0];
-    const last = this.lastClick;
     // Clicking the active wall again clears it, rather than reaching for a piece behind it.
     const onActiveWall = this.activeWall?.piece === order[0].index && this.activeWall.wall === order[0].wall;
     if (!onActiveWall && last && Math.hypot(e.clientX - last.x, e.clientY - last.y) < CLICK_SLOP_PX) {
@@ -497,13 +578,16 @@ class Player {
       if (k >= 0) choice = order[(k + 1) % order.length];
     }
     this.select(choice.index);
-    this.lastClick = { x: e.clientX, y: e.clientY, index: choice.index };
+    this.lastClick = { x: e.clientX, y: e.clientY, index: choice.index, time: now };
     // Recorded before the drag plane check: table-level views can't drag, but show walls best.
     if (this.wallMatchOn && choice.wall != null) this.wallPress = { x: e.clientX, y: e.clientY, piece: choice.index, wall: choice.wall };
     const pose = this.session.poses[choice.index];
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -choice.point.z);
     if (!this.pointOnPlane(e, plane)) return;
-    this.drag = { kind: 'move', index: choice.index, plane, offset: new THREE.Vector2(pose.x - choice.point.x, pose.y - choice.point.y), changed: false };
+    this.drag = {
+      kind: 'move', index: choice.index, group: this.groupOfPiece(choice.index), poses0: this.session.poses.map((q) => ({ ...q })),
+      plane, offset: new THREE.Vector2(pose.x - choice.point.x, pose.y - choice.point.y), changed: false,
+    };
     this.renderer.domElement.setPointerCapture(e.pointerId);
   };
 
@@ -525,12 +609,12 @@ class Player {
       drag.changed = true;
       this.lastClick = null;
     }
-    const pose = this.session.poses[drag.index];
+    const start = drag.poses0[drag.index];
     if (drag.kind === 'move') {
-      pose.x = p.x + drag.offset.x;
-      pose.y = p.y + drag.offset.y;
+      moveRigidly(this.session.poses, drag.poses0, drag.group, drag.index, p.x + drag.offset.x - start.x, p.y + drag.offset.y - start.y, 0);
     } else {
-      pose.theta = drag.theta0 + Math.atan2(p.y - pose.y, p.x - pose.x) - drag.start;
+      // A group turns about the centre of the piece whose handle is dragged.
+      moveRigidly(this.session.poses, drag.poses0, drag.group, drag.index, 0, 0, Math.atan2(p.y - start.y, p.x - start.x) - drag.start);
     }
     this.afterPosesChanged();
   };
@@ -555,12 +639,18 @@ class Player {
     if (this.renderer.domElement.hasPointerCapture(e.pointerId)) this.renderer.domElement.releasePointerCapture(e.pointerId);
   };
 
-  /** Sticky edges: align a released piece with an edge it is already next to (part of the same undo step). */
+  /**
+   * Sticky edges: align a released piece with an edge it is already next to (part of the same undo
+   * step). A glued group moves with it as one, and its own pieces are not edges to snap to.
+   */
   private applySticky(index: number): void {
-    const snapped = snapPose(this.puzzle, this.session.poses, index);
-    const pose = this.session.poses[index];
+    const group = this.groupOfPiece(index);
+    const poses = this.session.poses;
+    const snapped = snapPose(this.puzzle, poses, index, snapTolerances(this.puzzle), new Set(group));
+    const pose = poses[index];
     if (!snapped || (snapped.x === pose.x && snapped.y === pose.y && snapped.theta === pose.theta)) return;
-    this.session.poses[index] = snapped;
+    const before = poses.map((q) => ({ ...q }));
+    moveRigidly(poses, before, group, index, snapped.x - pose.x, snapped.y - pose.y, snapped.theta - pose.theta);
     this.session.snaps++;
   }
 
@@ -604,6 +694,7 @@ class Player {
     if (view) return this.setView(view[0]);
     if (key === 'z') return this.fitView();
     if (key === 's') return this.setSticky(!this.session.stickyEdges);
+    if (key === 'g') return this.setGlue(!this.session.glue);
     if (key === 'm' && this.puzzle.variant === 'relief') return this.setWallMatch(!this.session.wallMatch);
     if (key === 'tab') {
       e.preventDefault();
@@ -625,10 +716,8 @@ class Player {
     if (this.burstTimer === undefined) this.beginChange();
     else window.clearTimeout(this.burstTimer);
     this.burstTimer = window.setTimeout(() => this.endBurst(), 700);
-    const pose = this.session.poses[this.selected];
-    pose.x += move[0];
-    pose.y += move[1];
-    pose.theta += move[2];
+    const before = this.session.poses.map((q) => ({ ...q }));
+    moveRigidly(this.session.poses, before, this.groupOfPiece(this.selected), this.selected, move[0], move[1], move[2]);
     this.afterPosesChanged();
   };
 
@@ -695,7 +784,7 @@ class Player {
     let status: string;
     let cls = '';
     if (e.solved) {
-      const notes = [s.revealed && 'solution was shown', s.snaps && 'sticky edges', s.wallMatches && 'wall match'].filter(Boolean);
+      const notes = [s.revealed && 'solution was shown', s.snaps && 'sticky edges', s.wallMatches && 'wall match', s.glues && 'glue'].filter(Boolean);
       status = `Solved in ${formatTime(s.elapsedMs)}${notes.length ? ` (${notes.join(', ')})` : ''}`;
       cls = 'solved';
     } else if (red || walls) {
@@ -716,6 +805,7 @@ class Player {
     (this.ui.redo as HTMLButtonElement).disabled = !s.redo.length;
     this.ui.reveal.textContent = this.ghost.visible ? 'Hide solution' : 'Show solution';
     (this.ui.sticky as HTMLInputElement).checked = s.stickyEdges;
+    (this.ui.glue as HTMLInputElement).checked = s.glue;
     if (this.puzzle.variant === 'relief') this.updateWallMatchHud();
   }
 
@@ -798,6 +888,7 @@ class Player {
       evaluate: () => this.evaluation,
       session: () => this.session,
       wallMatch: () => ({ active: this.activeWall, candidates: this.wallCandidates }),
+      glue: () => this.glued.map((p) => this.pairId(p)),
     };
   }
 }

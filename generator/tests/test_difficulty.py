@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from tropical_puzzle_lab.difficulty import (
-    diversity, intrinsic_volumes, piece_solid, puzzle_difficulty, rating, shape_vectors,
+    RATING_THRESHOLDS, diversity, intrinsic_volumes, piece_solid, puzzle_difficulty, rating, shape_vectors,
 )
 from tropical_puzzle_lab.export import build_index, dump
 
@@ -103,9 +103,20 @@ def test_relief_piece_volume_is_area_times_centroid_height():
         assert intrinsic_volumes(piece_solid(piece)).v3 == pytest.approx(area * piece["roof"]["z0"], rel=1e-9)
 
 
-@pytest.mark.parametrize("x", [i / 400 for i in range(401)])
-def test_default_mapping_is_rounded_linear(x):
-    assert rating(x) == max(1, min(5, 5 - math.floor(4 * x + 0.5)))
+def test_mapping_steps_down_at_each_threshold():
+    xs = [i / 400 for i in range(401)]
+    ratings = [rating(x) for x in xs]
+    assert ratings == sorted(ratings, reverse=True)  # lower diversity is harder
+    assert rating(0) == 5 and rating(1) == 1
+    for k, t in enumerate(RATING_THRESHOLDS):
+        assert rating(t - 1e-9) == 5 - k and rating(t) == 4 - k
+
+
+def test_calibration_goals():
+    # The intro puzzle is the easiest rating, and the gallery uses the hardest one.
+    ratings = {e["id"]: e["difficulty"]["rating"] for e in build_index(PUZZLES)["puzzles"]}
+    assert ratings["new5"] == ratings["new5-flat"] == 1
+    assert 5 in ratings.values()
 
 
 def test_ratings_are_in_range():

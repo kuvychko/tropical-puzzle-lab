@@ -50,11 +50,11 @@ function runAlongside(e: Segment, f: Segment): number {
 /** Signed distance of p from f's line; negative on the free (right) side. */
 const sideOf = (p: Vec2, f: Segment) => dot(leftNormal(unit(sub(f.b, f.a))), sub(p, f.a));
 
-function fixedSegments(puzzle: Puzzle, poses: Pose[], index: number): Segment[] {
+function fixedSegments(puzzle: Puzzle, poses: Pose[], index: number, exclude: ReadonlySet<number>): Segment[] {
   // The tray's solid wall is outside the target, so its edges are reversed.
   const target = puzzle.geometry.target.vertices;
   const walls = edges([...target].reverse());
-  const others = puzzle.pieces.flatMap((piece, i) => (i === index ? [] : edges(transform(piece.polygon, poses[i]))));
+  const others = puzzle.pieces.flatMap((piece, i) => (i === index || exclude.has(i) ? [] : edges(transform(piece.polygon, poses[i]))));
   return [...walls, ...others];
 }
 
@@ -62,12 +62,15 @@ function fixedSegments(puzzle: Puzzle, poses: Pose[], index: number): Segment[] 
  * Returns the snapped pose of piece `index`, or null if no edge is close enough.
  * Step 1 turns the piece so its best-matching edge is parallel and flush with a nearby
  * fixed edge. Step 2 slides it along that edge until a second edge is flush, which
- * settles a piece into a corner.
+ * settles a piece into a corner. Pieces in `exclude` (the rest of a glued group, which moves
+ * with the piece) are not edges to snap to.
  */
-export function snapPose(puzzle: Puzzle, poses: Pose[], index: number, tol = snapTolerances(puzzle)): Pose | null {
+export function snapPose(
+  puzzle: Puzzle, poses: Pose[], index: number, tol = snapTolerances(puzzle), exclude: ReadonlySet<number> = new Set(),
+): Pose | null {
   const local = puzzle.pieces[index].polygon;
   const start = poses[index];
-  const fixed = fixedSegments(puzzle, poses, index);
+  const fixed = fixedSegments(puzzle, poses, index, exclude);
 
   let best: { pose: Pose; edge: number; segment: Segment; score: number } | null = null;
   edges(transform(local, start)).forEach((e, k) => {

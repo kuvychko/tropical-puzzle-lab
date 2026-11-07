@@ -69,6 +69,11 @@ There are three concerns, connected only by JSON:
   - It runs only when a drag or turn is released, and only aligns flush with edges already adjacent to the piece (tray walls from the inside, other pieces).
   - It must never consult `reference`.
   - Every snap that moves a piece increments `session.snaps`, which the report line shows as `assist=…`.
+- **Glue is opt-in and never moves a piece into place.**
+  - `src/geometry/glue.ts`, off by default, toggled with **G**.
+  - Pairs glue when they fit by the same seam test and tolerances as completion (`tolerances`, `seamsBetween` in `evaluate.ts`), decided only when a move is released. Glued groups move rigidly.
+  - It must never consult `reference`.
+  - Each pair glued for the first time in an attempt is added to `session.gluedPairs` and increments `session.glues` (`recordGlue`), shown as `assist=glue(N)`. Toggling, undo and redo never recount a pair.
 - **Wall match is opt-in and never moves anything.**
   - `src/geometry/walls.ts`, off by default, toggled with **M**, relief variants only.
   - It compares piece shapes only: it must never consult `reference` or poses.

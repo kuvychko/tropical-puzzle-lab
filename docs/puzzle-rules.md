@@ -10,6 +10,7 @@ These are the play rules agreed in [project.md](project.md), as the player imple
 | Target | The square tray outline is always visible. |
 | Snapping | Never toward the solution: no attraction to a piece's correct position or orientation, and no angle quantisation, including for keyboard nudges and turns. |
 | Sticky edges | Optional assist, off by default (see below). |
+| Glue | Optional assist, off by default (see below). |
 | Wall match | Optional assist for relief puzzles, off by default (see below). |
 | Collision | Pieces may pass through each other while being moved. |
 | Overlap feedback | A pair of pieces turns red while it overlaps by more than the depth tolerance. A piece that is partly in the tray turns red while it sticks out through a wall by more than the outside tolerance. Pieces parked entirely outside the tray stay their normal colour. |
@@ -50,6 +51,18 @@ It does not use the reference solution. It can make a piece flush against a wron
 Keyboard nudges are never snapped, so fine adjustment always stays possible.
 
 Each snap that moves a piece is counted in the session. The report line shows `assist=sticky-edges(N)`, or `assist=none` if it never moved a piece. The toggle is off by default so that unassisted attempts stay comparable.
+
+## Glue (optional assist)
+
+When it is on (checkbox in the panel, or **G**), two pieces that fit together are glued and move as one: dragging, turning or nudging any of them moves the whole group rigidly. A group turns about the centre of the piece whose handle is dragged. Pieces glued to a glued piece join the same group.
+
+Two pieces fit when they share an edge, judged with the same test and tolerances as the roof check in completion: edges facing each other within `edgeAngleDeg`, within 2×depth of each other, running alongside each other for at least `edgeMinOverlap`·S, and not overlapping beyond the depth tolerance. In relief puzzles the roofs must also agree along every shared edge, within the roof tolerance. Glue is decided when a move is released, never during a drag, and nothing is moved to make pieces fit.
+
+It does not use the reference solution, so any assembly that fits glues, including alternative ones. In flat puzzles only the outlines count, so pieces with matching edges glue even if they don't belong together.
+
+Double-clicking (or double-tapping) a glued piece detaches it from its group. A detached pair stays apart until the two pieces have been moved so they no longer fit. Undo removes glue made by the undone move, because the pieces no longer fit. With sticky edges on, a released group snaps as one, to edges outside the group.
+
+Each pair is counted the first time it is glued in an attempt, including pairs that already fit when glue is turned on; turning glue off and on, undo and redo never count a pair again. The report line shows `assist=glue(N)`, where N is the number of distinct pairs glued.
 
 ## Wall match (optional assist)
 
